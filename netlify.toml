@@ -11,11 +11,6 @@
   status = 200
 
 [[redirects]]
-  from = "/auth/*"
-  to = "/.netlify/functions/auth/:splat"
-  status = 200
-
-[[redirects]]
   from = "/section/*"
   to = "/section.html"
   status = 200

@@ -159,11 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Form submission
   const form = document.getElementById('add-form');
-  form.addEventListener('submit', addItem);
+  if (form) {
+    form.addEventListener('submit', addItem);
+  }
 
   // Section filter change
   const filterSection = document.getElementById('filter-section');
-  filterSection.addEventListener('change', (e) => {
-    loadItems(e.target.value);
-  });
+  if (filterSection) {
+    filterSection.addEventListener('change', (e) => {
+      loadItems(e.target.value);
+    });
+  }
 });
