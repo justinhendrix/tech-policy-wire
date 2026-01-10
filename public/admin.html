@@ -36,32 +36,70 @@
     </div>
 
     <div class="admin-form">
-      <h2>Add New Item</h2>
+      <h2 id="form-title">Add New Item</h2>
       <form id="add-form">
+        <input type="hidden" id="edit-id" name="edit-id" value="">
         <div class="form-group">
           <label for="section">Section</label>
           <select id="section" name="section" required>
             <option value="news">News</option>
             <option value="ideas">Ideas</option>
             <option value="reports">Reports</option>
+            <option value="research">Research</option>
             <option value="documents">Documents</option>
             <option value="podcasts">Podcasts</option>
           </select>
         </div>
-        <div class="form-group">
-          <label for="title">Title</label>
-          <input type="text" id="title" name="title" required placeholder="Article or item title">
+
+        <!-- Standard content fields -->
+        <div id="content-fields">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" placeholder="Article or item title">
+          </div>
+          <div class="form-group">
+            <label for="url">URL</label>
+            <input type="url" id="url" name="url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label for="source">Source (optional)</label>
+            <input type="text" id="source" name="source" placeholder="Publication name (e.g., Reuters, Brookings)">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="url">URL</label>
-          <input type="url" id="url" name="url" required placeholder="https://...">
+
+        <!-- Research-specific fields -->
+        <div id="research-fields" style="display: none;">
+          <div class="form-group">
+            <label for="researcher-name">Researcher Name</label>
+            <input type="text" id="researcher-name" name="researcher-name" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label for="institution">Institution</label>
+            <input type="text" id="institution" name="institution" placeholder="University or organization">
+          </div>
+          <div class="form-group">
+            <label for="research-area">Research Area</label>
+            <input type="text" id="research-area" name="research-area" placeholder="e.g., AI Policy, Platform Governance">
+          </div>
+          <div class="form-group">
+            <label for="profile-url">Profile URL</label>
+            <input type="url" id="profile-url" name="profile-url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label for="recent-publication">Recent Publication</label>
+            <input type="text" id="recent-publication" name="recent-publication" placeholder="Title of recent work">
+          </div>
+          <div class="form-group">
+            <label for="publication-url">Publication URL</label>
+            <input type="url" id="publication-url" name="publication-url" placeholder="https://...">
+          </div>
         </div>
-        <div class="form-group">
-          <label for="source">Source (optional)</label>
-          <input type="text" id="source" name="source" placeholder="Publication name (e.g., Reuters, Brookings)">
+
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="submit" class="btn" id="submit-btn">Add Item</button>
+          <button type="button" class="btn btn-outline" id="cancel-edit-btn" style="display: none;">Cancel</button>
+          <span id="form-status" style="margin-left: 0.5rem;"></span>
         </div>
-        <button type="submit" class="btn">Add Item</button>
-        <span id="form-status" style="margin-left: 1rem;"></span>
       </form>
     </div>
 
@@ -73,6 +111,7 @@
           <option value="news">News</option>
           <option value="ideas">Ideas</option>
           <option value="reports">Reports</option>
+          <option value="research">Research</option>
           <option value="documents">Documents</option>
           <option value="podcasts">Podcasts</option>
         </select>

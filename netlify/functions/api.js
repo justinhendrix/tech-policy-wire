@@ -125,6 +125,52 @@ async function addContentItem(section, data) {
   return { id, dateAdded, ...data };
 }
 
+// Update content item
+async function updateContentItem(section, id, data) {
+  const sheets = await getSheets();
+  const sheetName = SHEET_NAMES[section];
+
+  if (!sheetName) {
+    throw new Error(`Invalid section: ${section}`);
+  }
+
+  // Get all rows to find the one with matching ID
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `${sheetName}!A:G`
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Item not found');
+  }
+
+  // Update the row (keep ID and dateAdded, update title, url, source)
+  const existingRow = rows[rowIndex];
+  const updatedRow = [
+    existingRow[0], // ID
+    existingRow[1], // dateAdded
+    data.title || existingRow[2],
+    data.url || existingRow[3],
+    data.source || existingRow[4] || '',
+    existingRow[5] || 'admin', // addedBy
+    existingRow[6] || 'active' // status
+  ];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `${sheetName}!A${rowIndex + 1}:G${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [updatedRow]
+    }
+  });
+
+  return { id, ...data };
+}
+
 // Delete content item
 async function deleteContentItem(section, id) {
   const sheets = await getSheets();
@@ -151,6 +197,103 @@ async function deleteContentItem(section, id) {
   await sheets.spreadsheets.values.update({
     spreadsheetId: CONFIG.content_spreadsheet_id,
     range: `${sheetName}!G${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [['deleted']]
+    }
+  });
+
+  return { success: true };
+}
+
+// Add researcher
+async function addResearcher(data) {
+  const sheets = await getSheets();
+
+  const id = Date.now().toString();
+  const row = [
+    id,
+    data.name,
+    data.institution || '',
+    data.researchArea || '',
+    data.profileUrl || '',
+    data.recentPublication || '',
+    data.publicationUrl || '',
+    'active'
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: CONFIG.researchers_spreadsheet_id,
+    range: 'Researchers!A:H',
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [row]
+    }
+  });
+
+  return { id, ...data };
+}
+
+// Update researcher
+async function updateResearcher(id, data) {
+  const sheets = await getSheets();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.researchers_spreadsheet_id,
+    range: 'Researchers!A:H'
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Researcher not found');
+  }
+
+  const existingRow = rows[rowIndex];
+  const updatedRow = [
+    existingRow[0], // ID
+    data.name || existingRow[1],
+    data.institution || existingRow[2] || '',
+    data.researchArea || existingRow[3] || '',
+    data.profileUrl || existingRow[4] || '',
+    data.recentPublication || existingRow[5] || '',
+    data.publicationUrl || existingRow[6] || '',
+    existingRow[7] || 'active'
+  ];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.researchers_spreadsheet_id,
+    range: `Researchers!A${rowIndex + 1}:H${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [updatedRow]
+    }
+  });
+
+  return { id, ...data };
+}
+
+// Delete researcher
+async function deleteResearcher(id) {
+  const sheets = await getSheets();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.researchers_spreadsheet_id,
+    range: 'Researchers!A:H'
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Researcher not found');
+  }
+
+  // Mark as deleted
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.researchers_spreadsheet_id,
+    range: `Researchers!H${rowIndex + 1}`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [['deleted']]
@@ -249,14 +392,41 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'POST' && segments[0] === 'content' && segments[1]) {
       const section = segments[1];
       const data = JSON.parse(event.body);
+
+      if (section === 'research') {
+        const result = await addResearcher(data);
+        return { statusCode: 201, headers, body: JSON.stringify(result) };
+      }
+
       const result = await addContentItem(section, data);
       return { statusCode: 201, headers, body: JSON.stringify(result) };
+    }
+
+    // PUT /api/content/:section/:id - Update item
+    if (event.httpMethod === 'PUT' && segments[0] === 'content' && segments[1] && segments[2]) {
+      const section = segments[1];
+      const id = segments[2];
+      const data = JSON.parse(event.body);
+
+      if (section === 'research') {
+        const result = await updateResearcher(id, data);
+        return { statusCode: 200, headers, body: JSON.stringify(result) };
+      }
+
+      const result = await updateContentItem(section, id, data);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
     }
 
     // DELETE /api/content/:section/:id - Delete item
     if (event.httpMethod === 'DELETE' && segments[0] === 'content' && segments[1] && segments[2]) {
       const section = segments[1];
       const id = segments[2];
+
+      if (section === 'research') {
+        const result = await deleteResearcher(id);
+        return { statusCode: 200, headers, body: JSON.stringify(result) };
+      }
+
       const result = await deleteContentItem(section, id);
       return { statusCode: 200, headers, body: JSON.stringify(result) };
     }

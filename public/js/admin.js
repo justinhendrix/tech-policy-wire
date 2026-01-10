@@ -35,13 +35,67 @@ function debounce(func, wait) {
   };
 }
 
+// Toggle form fields based on section
+function toggleFormFields(section) {
+  const contentFields = document.getElementById('content-fields');
+  const researchFields = document.getElementById('research-fields');
+
+  if (section === 'research') {
+    contentFields.style.display = 'none';
+    researchFields.style.display = 'block';
+  } else {
+    contentFields.style.display = 'block';
+    researchFields.style.display = 'none';
+  }
+}
+
+// Clear the form
+function clearForm() {
+  const form = document.getElementById('add-form');
+  form.reset();
+  document.getElementById('edit-id').value = '';
+  document.getElementById('form-title').textContent = 'Add New Item';
+  document.getElementById('submit-btn').textContent = 'Add Item';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('section').disabled = false;
+  toggleFormFields('news');
+}
+
+// Populate form for editing
+function populateFormForEdit(item, section) {
+  document.getElementById('edit-id').value = item.id;
+  document.getElementById('section').value = section;
+  document.getElementById('section').disabled = true;
+  document.getElementById('form-title').textContent = 'Edit Item';
+  document.getElementById('submit-btn').textContent = 'Update Item';
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+
+  toggleFormFields(section);
+
+  if (section === 'research') {
+    document.getElementById('researcher-name').value = item.name || '';
+    document.getElementById('institution').value = item.institution || '';
+    document.getElementById('research-area').value = item.researchArea || '';
+    document.getElementById('profile-url').value = item.profileUrl || '';
+    document.getElementById('recent-publication').value = item.recentPublication || '';
+    document.getElementById('publication-url').value = item.publicationUrl || '';
+  } else {
+    document.getElementById('title').value = item.title || '';
+    document.getElementById('url').value = item.url || '';
+    document.getElementById('source').value = item.source || '';
+  }
+
+  // Scroll to form
+  document.querySelector('.admin-form').scrollIntoView({ behavior: 'smooth' });
+}
+
 // Load items for a section
 async function loadItems(section) {
   const tbody = document.getElementById('items-table');
   tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading...</td></tr>';
 
   try {
-    const response = await fetch(`${API_BASE}/content/${section}?limit=20`);
+    const response = await fetch(`${API_BASE}/content/${section}?limit=50`);
     const items = await response.json();
 
     tbody.innerHTML = '';
@@ -57,26 +111,43 @@ async function loadItems(section) {
       // Title cell with link
       const titleTd = document.createElement('td');
       const titleLink = document.createElement('a');
-      titleLink.href = item.url;
+
+      if (section === 'research') {
+        titleLink.href = item.profileUrl || item.publicationUrl || '#';
+        titleLink.textContent = item.name || item.recentPublication || 'Untitled';
+      } else {
+        titleLink.href = item.url || '#';
+        titleLink.textContent = item.title || 'Untitled';
+      }
+
       titleLink.target = '_blank';
-      titleLink.textContent = item.title;
       titleTd.appendChild(titleLink);
       tr.appendChild(titleTd);
 
-      // Source cell
+      // Source/Institution cell
       const sourceTd = document.createElement('td');
-      sourceTd.textContent = item.source || '-';
+      sourceTd.textContent = section === 'research' ? (item.institution || '-') : (item.source || '-');
       tr.appendChild(sourceTd);
 
       // Date cell
       const dateTd = document.createElement('td');
-      const date = new Date(item.dateAdded);
-      dateTd.textContent = date.toLocaleDateString();
+      if (item.dateAdded) {
+        const date = new Date(item.dateAdded);
+        dateTd.textContent = date.toLocaleDateString();
+      } else {
+        dateTd.textContent = '-';
+      }
       tr.appendChild(dateTd);
 
       // Actions cell
       const actionsTd = document.createElement('td');
       actionsTd.className = 'admin-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-outline';
+      editBtn.textContent = 'Edit';
+      editBtn.onclick = () => populateFormForEdit(item, section);
+      actionsTd.appendChild(editBtn);
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'btn btn-danger';
@@ -93,62 +164,89 @@ async function loadItems(section) {
   }
 }
 
-// Add new item
+// Add or update item
 async function addItem(e) {
   e.preventDefault();
 
   const form = e.target;
   const status = document.getElementById('form-status');
-
   const section = form.section.value;
-  const title = form.title.value.trim();
-  const url = form.url.value.trim();
-  const source = form.source.value.trim();
+  const editId = document.getElementById('edit-id').value;
+  const isEdit = !!editId;
 
-  if (!title || !url) {
-    status.textContent = 'Title and URL are required';
-    status.style.color = '#cc0000';
-    return;
+  let data;
+
+  if (section === 'research') {
+    data = {
+      name: document.getElementById('researcher-name').value.trim(),
+      institution: document.getElementById('institution').value.trim(),
+      researchArea: document.getElementById('research-area').value.trim(),
+      profileUrl: document.getElementById('profile-url').value.trim(),
+      recentPublication: document.getElementById('recent-publication').value.trim(),
+      publicationUrl: document.getElementById('publication-url').value.trim()
+    };
+
+    if (!data.name) {
+      status.textContent = 'Researcher name is required';
+      status.style.color = '#cc0000';
+      return;
+    }
+  } else {
+    data = {
+      title: document.getElementById('title').value.trim(),
+      url: document.getElementById('url').value.trim(),
+      source: document.getElementById('source').value.trim()
+    };
+
+    if (!data.title || !data.url) {
+      status.textContent = 'Title and URL are required';
+      status.style.color = '#cc0000';
+      return;
+    }
   }
 
-  status.textContent = 'Adding...';
+  status.textContent = isEdit ? 'Updating...' : 'Adding...';
   status.style.color = '#666666';
 
   try {
-    const response = await fetch(`${API_BASE}/content/${section}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ title, url, source })
-    });
+    let response;
 
-    if (!response.ok) {
-      throw new Error('Failed to add item');
+    if (isEdit) {
+      response = await fetch(`${API_BASE}/content/${section}/${editId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      response = await fetch(`${API_BASE}/content/${section}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
     }
 
-    status.textContent = 'Added successfully!';
+    if (!response.ok) {
+      throw new Error(isEdit ? 'Failed to update item' : 'Failed to add item');
+    }
+
+    status.textContent = isEdit ? 'Updated successfully!' : 'Added successfully!';
     status.style.color = '#008800';
 
-    // Clear form
-    form.title.value = '';
-    form.url.value = '';
-    form.source.value = '';
+    // Clear form and reload
+    clearForm();
 
-    // Reload items if viewing the same section
     const filterSection = document.getElementById('filter-section').value;
     if (filterSection === section) {
       loadItems(section);
     }
 
-    // Clear status after 3 seconds
     setTimeout(() => {
       status.textContent = '';
     }, 3000);
 
   } catch (error) {
-    console.error('Error adding item:', error);
-    status.textContent = 'Failed to add item';
+    console.error('Error:', error);
+    status.textContent = isEdit ? 'Failed to update item' : 'Failed to add item';
     status.style.color = '#cc0000';
   }
 }
@@ -168,7 +266,6 @@ async function deleteItem(section, id) {
       throw new Error('Failed to delete item');
     }
 
-    // Reload items
     loadItems(section);
 
   } catch (error) {
@@ -180,8 +277,6 @@ async function deleteItem(section, id) {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadUserInfo();
-
-  // Load initial items
   loadItems('news');
 
   // Form submission
@@ -190,7 +285,21 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', addItem);
   }
 
-  // Section filter change
+  // Section select change - toggle fields
+  const sectionSelect = document.getElementById('section');
+  if (sectionSelect) {
+    sectionSelect.addEventListener('change', (e) => {
+      toggleFormFields(e.target.value);
+    });
+  }
+
+  // Cancel edit button
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', clearForm);
+  }
+
+  // Filter section change
   const filterSection = document.getElementById('filter-section');
   if (filterSection) {
     filterSection.addEventListener('change', (e) => {
@@ -207,8 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (urlInput) {
     const handleUrlChange = debounce(async (url) => {
       if (!url || !url.startsWith('http')) return;
-
-      // Only fetch if title is empty
       if (titleInput.value.trim()) return;
 
       formStatus.textContent = 'Fetching metadata...';
@@ -239,8 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       handleUrlChange(e.target.value.trim());
     });
 
-    // Also handle paste
-    urlInput.addEventListener('paste', (e) => {
+    urlInput.addEventListener('paste', () => {
       setTimeout(() => {
         handleUrlChange(urlInput.value.trim());
       }, 100);
