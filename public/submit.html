@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit a Link - Tech Policy Press Field Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .submit-form {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #fff;
+      border: 1px solid #e5e5e5;
+    }
+    .submit-form h2 {
+      font-family: 'Lexend', sans-serif;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .submit-form .intro {
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-family: 'Lexend', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.5rem;
+      font-family: 'Lexend', sans-serif;
+      font-size: 0.9rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .btn {
+      background: #FF0033;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-family: 'Lexend', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .btn:hover {
+      background: #cc0029;
+    }
+    .form-status {
+      margin-top: 0.5rem;
+      font-family: 'Lexend', sans-serif;
+      font-size: 0.85rem;
+    }
+    .success-message {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+    .success-message h2 {
+      font-family: 'Lexend', sans-serif;
+      color: #008800;
+      margin-bottom: 1rem;
+    }
+    .success-message p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .success-message a {
+      color: #FF0033;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo-container">
+        <a href="https://techpolicy.press">
+          <img src="/images/Tech Policy Press Logo Final-01.png" alt="Tech Policy Press">
+        </a>
+      </div>
+      <div class="header-text">
+        <h1>Field Notes</h1>
+        <p class="tagline">Submit a Link</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-page">
+    <div class="submit-form" id="submit-form-container">
+      <h2>Submit a Link</h2>
+      <p class="intro">Have a news article, research paper, report, or other resource related to technology policy? Share it with us using the form below.</p>
+
+      <form id="submit-form">
+        <div class="form-group">
+          <label for="section">Category</label>
+          <select id="section" name="section" required>
+            <option value="">Select a category...</option>
+            <option value="news">News</option>
+            <option value="ideas">Ideas & Commentary</option>
+            <option value="reports">Reports</option>
+            <option value="research">Research</option>
+            <option value="documents">Documents</option>
+            <option value="podcasts">Podcasts</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="url">URL *</label>
+          <input type="url" id="url" name="url" placeholder="https://..." required>
+        </div>
+
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" name="title" placeholder="Article or resource title (we'll try to fetch this automatically)">
+        </div>
+
+        <div class="form-group">
+          <label for="source">Source</label>
+          <input type="text" id="source" name="source" placeholder="Publication or organization name">
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes (optional)</label>
+          <textarea id="notes" name="notes" placeholder="Any additional context or why you think this is relevant..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="submitter-email">Your Email (optional)</label>
+          <input type="email" id="submitter-email" name="submitter-email" placeholder="In case we have questions">
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: flex-start; gap: 0.5rem;">
+          <input type="checkbox" id="newsletter-signup" name="newsletter-signup" style="margin-top: 0.25rem;">
+          <label for="newsletter-signup" style="font-weight: normal; cursor: pointer;">Sign up for the weekly Tech Policy Press newsletter</label>
+        </div>
+
+        <button type="submit" class="btn" id="submit-btn">Submit Link</button>
+        <span class="form-status" id="form-status"></span>
+      </form>
+    </div>
+
+    <div class="submit-form success-message" id="success-message">
+      <h2>Thank You!</h2>
+      <p>Thanks! We can't publish every link that is submitted, but we will review yours as soon as possible!</p>
+      <p><a href="/">Return to Field Notes</a></p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <nav class="footer-nav">
+        <ul>
+          <li><a href="/">Back to Field Notes</a></li>
+        </ul>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    const API_BASE = '/api';
+
+    // Debounce function
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // Fetch metadata from URL
+    async function fetchMetadata(url) {
+      try {
+        const response = await fetch(`${API_BASE}/metadata?url=${encodeURIComponent(url)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch metadata');
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+        return null;
+      }
+    }
+
+    // Initialize form
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('submit-form');
+      const urlInput = document.getElementById('url');
+      const titleInput = document.getElementById('title');
+      const sourceInput = document.getElementById('source');
+      const formStatus = document.getElementById('form-status');
+      const formContainer = document.getElementById('submit-form-container');
+      const successMessage = document.getElementById('success-message');
+
+      // Auto-fetch metadata when URL is entered
+      const handleUrlChange = debounce(async (url) => {
+        if (!url || !url.startsWith('http')) return;
+        if (titleInput.value.trim()) return;
+
+        formStatus.textContent = 'Fetching metadata...';
+        formStatus.style.color = '#666666';
+
+        const metadata = await fetchMetadata(url);
+
+        if (metadata) {
+          if (metadata.title && !titleInput.value.trim()) {
+            titleInput.value = metadata.title;
+          }
+          if (metadata.source && !sourceInput.value.trim()) {
+            sourceInput.value = metadata.source;
+          }
+          formStatus.textContent = 'Metadata loaded';
+          formStatus.style.color = '#008800';
+        } else {
+          formStatus.textContent = '';
+        }
+
+        setTimeout(() => {
+          formStatus.textContent = '';
+        }, 2000);
+      }, 500);
+
+      urlInput.addEventListener('input', (e) => {
+        handleUrlChange(e.target.value.trim());
+      });
+
+      urlInput.addEventListener('paste', () => {
+        setTimeout(() => {
+          handleUrlChange(urlInput.value.trim());
+        }, 100);
+      });
+
+      // Form submission
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+          section: document.getElementById('section').value,
+          url: urlInput.value.trim(),
+          title: titleInput.value.trim(),
+          source: sourceInput.value.trim(),
+          notes: document.getElementById('notes').value.trim(),
+          submitterEmail: document.getElementById('submitter-email').value.trim(),
+          newsletterSignup: document.getElementById('newsletter-signup').checked
+        };
+
+        if (!data.section || !data.url) {
+          formStatus.textContent = 'Category and URL are required';
+          formStatus.style.color = '#cc0000';
+          return;
+        }
+
+        formStatus.textContent = 'Submitting...';
+        formStatus.style.color = '#666666';
+        document.getElementById('submit-btn').disabled = true;
+
+        try {
+          const response = await fetch(`${API_BASE}/submissions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to submit');
+          }
+
+          // Show success message
+          formContainer.style.display = 'none';
+          successMessage.style.display = 'block';
+
+        } catch (error) {
+          console.error('Error:', error);
+          formStatus.textContent = 'Failed to submit. Please try again.';
+          formStatus.style.color = '#cc0000';
+          document.getElementById('submit-btn').disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

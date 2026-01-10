@@ -307,6 +307,155 @@ async function deleteResearcher(id) {
   return { success: true };
 }
 
+// Get pending submissions
+async function getSubmissions() {
+  const sheets = await getSheets();
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: CONFIG.content_spreadsheet_id,
+      range: 'Submissions!A:I'
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return [];
+
+    const items = rows.slice(1).map(row => ({
+      id: row[0] || '',
+      dateSubmitted: row[1] || '',
+      section: row[2] || '',
+      title: row[3] || '',
+      url: row[4] || '',
+      source: row[5] || '',
+      notes: row[6] || '',
+      submitterEmail: row[7] || '',
+      status: row[8] || 'pending'
+    })).filter(item => item.status === 'pending');
+
+    // Sort by date descending
+    items.sort((a, b) => new Date(b.dateSubmitted) - new Date(a.dateSubmitted));
+
+    return items;
+  } catch (error) {
+    console.error('Error fetching submissions:', error.message);
+    return [];
+  }
+}
+
+// Add a submission
+async function addSubmission(data) {
+  const sheets = await getSheets();
+
+  const id = Date.now().toString();
+  const dateSubmitted = new Date().toISOString();
+  const row = [
+    id,
+    dateSubmitted,
+    data.section,
+    data.title || '',
+    data.url,
+    data.source || '',
+    data.notes || '',
+    data.submitterEmail || '',
+    'pending',
+    data.newsletterSignup ? 'yes' : 'no'
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: 'Submissions!A:J',
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [row]
+    }
+  });
+
+  return { id, dateSubmitted, ...data };
+}
+
+// Approve a submission (move to content)
+async function approveSubmission(id) {
+  const sheets = await getSheets();
+
+  // Get the submission
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: 'Submissions!A:I'
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Submission not found');
+  }
+
+  const submission = {
+    id: rows[rowIndex][0],
+    dateSubmitted: rows[rowIndex][1],
+    section: rows[rowIndex][2],
+    title: rows[rowIndex][3],
+    url: rows[rowIndex][4],
+    source: rows[rowIndex][5]
+  };
+
+  // Add to appropriate section
+  if (submission.section === 'research') {
+    await addResearcher({
+      title: submission.title,
+      url: submission.url,
+      source: submission.source
+    });
+  } else {
+    await addContentItem(submission.section, {
+      title: submission.title,
+      url: submission.url,
+      source: submission.source
+    });
+  }
+
+  // Mark submission as approved
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `Submissions!I${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [['approved']]
+    }
+  });
+
+  return { success: true };
+}
+
+// Dismiss a submission
+async function dismissSubmission(id) {
+  const sheets = await getSheets();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: 'Submissions!A:I'
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Submission not found');
+  }
+
+  // Mark as dismissed
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `Submissions!I${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [['dismissed']]
+    }
+  });
+
+  return { success: true };
+}
+
 // Get all content for homepage
 async function getAllContent(search = '') {
   const [news, ideas, reports, research, documents, podcasts] = await Promise.all([
@@ -432,6 +581,33 @@ exports.handler = async (event, context) => {
       }
 
       const result = await deleteContentItem(section, id);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
+    }
+
+    // GET /api/submissions - Get pending submissions (admin)
+    if (event.httpMethod === 'GET' && segments[0] === 'submissions') {
+      const items = await getSubmissions();
+      return { statusCode: 200, headers, body: JSON.stringify(items) };
+    }
+
+    // POST /api/submissions - Add a new submission (public)
+    if (event.httpMethod === 'POST' && segments[0] === 'submissions') {
+      const data = JSON.parse(event.body);
+      const result = await addSubmission(data);
+      return { statusCode: 201, headers, body: JSON.stringify(result) };
+    }
+
+    // POST /api/submissions/:id/approve - Approve a submission (admin)
+    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'approve') {
+      const id = segments[1];
+      const result = await approveSubmission(id);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
+    }
+
+    // POST /api/submissions/:id/dismiss - Dismiss a submission (admin)
+    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'dismiss') {
+      const id = segments[1];
+      const result = await dismissSubmission(id);
       return { statusCode: 200, headers, body: JSON.stringify(result) };
     }
 

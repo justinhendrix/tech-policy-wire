@@ -268,9 +268,149 @@ async function deleteItem(section, id) {
   }
 }
 
+// Load pending submissions
+async function loadSubmissions() {
+  const tbody = document.getElementById('submissions-table');
+  const tableContainer = document.getElementById('submissions-table-container');
+  const emptyMessage = document.getElementById('submissions-empty');
+  const countSpan = document.getElementById('submissions-count');
+
+  try {
+    const response = await fetch(`${API_BASE}/submissions`);
+    const items = await response.json();
+
+    if (!items || items.length === 0) {
+      tableContainer.style.display = 'none';
+      emptyMessage.style.display = 'block';
+      countSpan.textContent = '';
+      return;
+    }
+
+    countSpan.textContent = `(${items.length})`;
+    emptyMessage.style.display = 'none';
+    tableContainer.style.display = 'table';
+    tbody.innerHTML = '';
+
+    items.forEach(item => {
+      const tr = document.createElement('tr');
+
+      // Title cell with link
+      const titleTd = document.createElement('td');
+      const titleLink = document.createElement('a');
+      titleLink.href = item.url || '#';
+      titleLink.textContent = item.title || item.url || 'Untitled';
+      titleLink.target = '_blank';
+      titleTd.appendChild(titleLink);
+      if (item.source) {
+        const sourceSpan = document.createElement('span');
+        sourceSpan.style.cssText = 'display: block; font-size: 0.8rem; color: #666;';
+        sourceSpan.textContent = item.source;
+        titleTd.appendChild(sourceSpan);
+      }
+      if (item.notes) {
+        const notesSpan = document.createElement('span');
+        notesSpan.style.cssText = 'display: block; font-size: 0.75rem; color: #999; font-style: italic;';
+        notesSpan.textContent = `"${item.notes}"`;
+        titleTd.appendChild(notesSpan);
+      }
+      tr.appendChild(titleTd);
+
+      // Section cell
+      const sectionTd = document.createElement('td');
+      sectionTd.textContent = item.section || '-';
+      tr.appendChild(sectionTd);
+
+      // Date cell
+      const dateTd = document.createElement('td');
+      if (item.dateSubmitted) {
+        const date = new Date(item.dateSubmitted);
+        dateTd.textContent = date.toLocaleDateString();
+      } else {
+        dateTd.textContent = '-';
+      }
+      tr.appendChild(dateTd);
+
+      // Actions cell
+      const actionsTd = document.createElement('td');
+      actionsTd.className = 'admin-actions';
+
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'btn';
+      approveBtn.textContent = 'Publish';
+      approveBtn.style.cssText = 'background: #008800; margin-right: 0.25rem;';
+      approveBtn.onclick = () => approveSubmission(item.id);
+      actionsTd.appendChild(approveBtn);
+
+      const dismissBtn = document.createElement('button');
+      dismissBtn.className = 'btn btn-outline';
+      dismissBtn.textContent = 'Dismiss';
+      dismissBtn.onclick = () => dismissSubmission(item.id);
+      actionsTd.appendChild(dismissBtn);
+
+      tr.appendChild(actionsTd);
+      tbody.appendChild(tr);
+    });
+  } catch (error) {
+    console.error('Error loading submissions:', error);
+    tableContainer.style.display = 'none';
+    emptyMessage.style.display = 'block';
+    emptyMessage.textContent = 'Failed to load submissions';
+  }
+}
+
+// Approve a submission
+async function approveSubmission(id) {
+  if (!confirm('Publish this submission?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/submissions/${id}/approve`, {
+      method: 'POST'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to approve submission');
+    }
+
+    loadSubmissions();
+    // Reload the current section in case it was added there
+    const filterSection = document.getElementById('filter-section').value;
+    loadItems(filterSection);
+
+  } catch (error) {
+    console.error('Error approving submission:', error);
+    alert('Failed to publish submission');
+  }
+}
+
+// Dismiss a submission
+async function dismissSubmission(id) {
+  if (!confirm('Dismiss this submission? This cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/submissions/${id}/dismiss`, {
+      method: 'POST'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to dismiss submission');
+    }
+
+    loadSubmissions();
+
+  } catch (error) {
+    console.error('Error dismissing submission:', error);
+    alert('Failed to dismiss submission');
+  }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadUserInfo();
+  loadSubmissions();
   loadItems('news');
 
   // Form submission

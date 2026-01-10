@@ -99,6 +99,30 @@
       </form>
     </div>
 
+    <div id="submissions-section" style="margin-bottom: 2rem;">
+      <h2 style="font-family: 'Lexend', sans-serif; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e5e5;">
+        Pending Submissions
+        <span id="submissions-count" style="font-weight: normal; color: #666;"></span>
+      </h2>
+
+      <div id="submissions-empty" style="display: none; color: #666; font-style: italic;">
+        No pending submissions
+      </div>
+
+      <table class="admin-table" id="submissions-table-container" style="display: none;">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Section</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="submissions-table">
+        </tbody>
+      </table>
+    </div>
+
     <div id="recent-section">
       <h2 style="font-family: 'Lexend', sans-serif; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e5e5;">Recent Items</h2>
 
