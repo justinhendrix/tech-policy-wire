@@ -8,6 +8,33 @@ async function loadUserInfo() {
   userInfo.textContent = 'Admin Mode';
 }
 
+// Fetch metadata from URL
+async function fetchMetadata(url) {
+  try {
+    const response = await fetch(`${API_BASE}/metadata?url=${encodeURIComponent(url)}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch metadata');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching metadata:', error);
+    return null;
+  }
+}
+
+// Debounce function
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 // Load items for a section
 async function loadItems(section) {
   const tbody = document.getElementById('items-table');
@@ -168,6 +195,55 @@ document.addEventListener('DOMContentLoaded', () => {
   if (filterSection) {
     filterSection.addEventListener('change', (e) => {
       loadItems(e.target.value);
+    });
+  }
+
+  // Auto-fetch metadata when URL is entered
+  const urlInput = document.getElementById('url');
+  const titleInput = document.getElementById('title');
+  const sourceInput = document.getElementById('source');
+  const formStatus = document.getElementById('form-status');
+
+  if (urlInput) {
+    const handleUrlChange = debounce(async (url) => {
+      if (!url || !url.startsWith('http')) return;
+
+      // Only fetch if title is empty
+      if (titleInput.value.trim()) return;
+
+      formStatus.textContent = 'Fetching metadata...';
+      formStatus.style.color = '#666666';
+
+      const metadata = await fetchMetadata(url);
+
+      if (metadata) {
+        if (metadata.title && !titleInput.value.trim()) {
+          titleInput.value = metadata.title;
+        }
+        if (metadata.source && !sourceInput.value.trim()) {
+          sourceInput.value = metadata.source;
+        }
+        formStatus.textContent = 'Metadata loaded';
+        formStatus.style.color = '#008800';
+      } else {
+        formStatus.textContent = 'Could not fetch metadata';
+        formStatus.style.color = '#cc0000';
+      }
+
+      setTimeout(() => {
+        formStatus.textContent = '';
+      }, 2000);
+    }, 500);
+
+    urlInput.addEventListener('input', (e) => {
+      handleUrlChange(e.target.value.trim());
+    });
+
+    // Also handle paste
+    urlInput.addEventListener('paste', (e) => {
+      setTimeout(() => {
+        handleUrlChange(urlInput.value.trim());
+      }, 100);
     });
   }
 });
