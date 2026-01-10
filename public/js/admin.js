@@ -4,19 +4,8 @@ const API_BASE = '/api';
 
 // Load user info
 async function loadUserInfo() {
-  try {
-    const response = await fetch(`${API_BASE}/me`);
-    const data = await response.json();
-
-    const userInfo = document.getElementById('user-info');
-    if (data.authenticated) {
-      userInfo.textContent = `Logged in as ${data.user.name} (${data.user.email})`;
-    } else {
-      window.location.href = '/admin';
-    }
-  } catch (error) {
-    console.error('Error loading user info:', error);
-  }
+  const userInfo = document.getElementById('user-info');
+  userInfo.textContent = 'Admin Mode';
 }
 
 // Load items for a section

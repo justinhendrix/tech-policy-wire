@@ -100,6 +100,66 @@ async function getResearchers(limit = 10) {
   }
 }
 
+// Add content item
+async function addContentItem(section, data) {
+  const sheets = await getSheets();
+  const sheetName = SHEET_NAMES[section];
+
+  if (!sheetName) {
+    throw new Error(`Invalid section: ${section}`);
+  }
+
+  const id = Date.now().toString();
+  const dateAdded = new Date().toISOString();
+  const row = [id, dateAdded, data.title, data.url, data.source || '', 'admin', 'active'];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `${sheetName}!A:G`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [row]
+    }
+  });
+
+  return { id, dateAdded, ...data };
+}
+
+// Delete content item
+async function deleteContentItem(section, id) {
+  const sheets = await getSheets();
+  const sheetName = SHEET_NAMES[section];
+
+  if (!sheetName) {
+    throw new Error(`Invalid section: ${section}`);
+  }
+
+  // Get all rows to find the one with matching ID
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `${sheetName}!A:G`
+  });
+
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex(row => row[0] === id);
+
+  if (rowIndex === -1) {
+    throw new Error('Item not found');
+  }
+
+  // Mark as deleted instead of actually deleting
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: CONFIG.content_spreadsheet_id,
+    range: `${sheetName}!G${rowIndex + 1}`,
+    valueInputOption: 'RAW',
+    requestBody: {
+      values: [['deleted']]
+    }
+  });
+
+  return { success: true };
+}
+
 // Get all content for homepage
 async function getAllContent(search = '') {
   const [news, ideas, reports, research, documents, podcasts] = await Promise.all([
@@ -183,6 +243,22 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({ authenticated: false })
       };
+    }
+
+    // POST /api/content/:section - Add new item
+    if (event.httpMethod === 'POST' && segments[0] === 'content' && segments[1]) {
+      const section = segments[1];
+      const data = JSON.parse(event.body);
+      const result = await addContentItem(section, data);
+      return { statusCode: 201, headers, body: JSON.stringify(result) };
+    }
+
+    // DELETE /api/content/:section/:id - Delete item
+    if (event.httpMethod === 'DELETE' && segments[0] === 'content' && segments[1] && segments[2]) {
+      const section = segments[1];
+      const id = segments[2];
+      const result = await deleteContentItem(section, id);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
     }
 
     return {
