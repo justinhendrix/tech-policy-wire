@@ -16,47 +16,30 @@ function debounce(func, wait) {
 }
 
 // Render a content item
-function renderItem(item, section) {
+function renderItem(item) {
   const li = document.createElement('li');
 
-  if (section === 'research') {
-    // Research items show institution and publication
-    const link = document.createElement('a');
-    link.href = item.publicationUrl || item.profileUrl || '#';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.textContent = item.recentPublication || item.name;
-    li.appendChild(link);
+  // All items now have the same structure: title, url, source
+  const link = document.createElement('a');
+  link.href = item.url || '#';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = item.title;
+  li.appendChild(link);
 
-    if (item.institution) {
-      const source = document.createElement('span');
-      source.className = 'source';
-      source.textContent = item.institution;
-      li.appendChild(source);
-    }
-  } else {
-    // Regular content items
-    const link = document.createElement('a');
-    link.href = item.url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.textContent = item.title;
-    li.appendChild(link);
-
-    // Add source below title
-    if (item.source) {
-      const source = document.createElement('span');
-      source.className = 'source';
-      source.textContent = item.source;
-      li.appendChild(source);
-    }
+  // Add source below title
+  if (item.source) {
+    const source = document.createElement('span');
+    source.className = 'source';
+    source.textContent = item.source;
+    li.appendChild(source);
   }
 
   return li;
 }
 
 // Render items into a list
-function renderList(listId, items, section) {
+function renderList(listId, items) {
   const list = document.getElementById(listId);
   if (!list) return;
 
@@ -71,7 +54,7 @@ function renderList(listId, items, section) {
   }
 
   items.forEach(item => {
-    list.appendChild(renderItem(item, section));
+    list.appendChild(renderItem(item));
   });
 }
 
@@ -85,12 +68,12 @@ async function loadContent(search = '') {
     const response = await fetch(url);
     const data = await response.json();
 
-    renderList('news-list', data.news, 'news');
-    renderList('ideas-list', data.ideas, 'ideas');
-    renderList('reports-list', data.reports, 'reports');
-    renderList('research-list', data.research, 'research');
-    renderList('documents-list', data.documents, 'documents');
-    renderList('podcasts-list', data.podcasts, 'podcasts');
+    renderList('news-list', data.news);
+    renderList('ideas-list', data.ideas);
+    renderList('reports-list', data.reports);
+    renderList('research-list', data.research);
+    renderList('documents-list', data.documents);
+    renderList('podcasts-list', data.podcasts);
 
   } catch (error) {
     console.error('Error loading content:', error);

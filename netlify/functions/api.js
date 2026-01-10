@@ -69,14 +69,14 @@ async function getContentItems(section, limit = 10) {
   }
 }
 
-// Get researchers
+// Get research items
 async function getResearchers(limit = 10) {
   const sheets = await getSheets();
 
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: CONFIG.researchers_spreadsheet_id,
-      range: 'Researchers!A:H'
+      range: 'Research!A:H'
     });
 
     const rows = response.data.values || [];
@@ -84,18 +84,21 @@ async function getResearchers(limit = 10) {
 
     const items = rows.slice(1).map(row => ({
       id: row[0] || '',
-      name: row[1] || '',
-      institution: row[2] || '',
-      researchArea: row[3] || '',
-      profileUrl: row[4] || '',
-      recentPublication: row[5] || '',
-      publicationUrl: row[6] || '',
+      dateAdded: row[1] || '',
+      title: row[2] || '',
+      url: row[3] || '',
+      source: row[4] || '',
+      authors: row[5] || '',
+      institutions: row[6] || '',
       status: row[7] || 'active'
-    })).filter(item => item.status !== 'deleted' && item.name);
+    })).filter(item => item.status !== 'deleted' && item.title);
+
+    // Sort by date descending
+    items.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
 
     return limit ? items.slice(0, limit) : items;
   } catch (error) {
-    console.error('Error fetching researchers:', error.message);
+    console.error('Error fetching research:', error.message);
     return [];
   }
 }
@@ -206,65 +209,66 @@ async function deleteContentItem(section, id) {
   return { success: true };
 }
 
-// Add researcher
+// Add research item
 async function addResearcher(data) {
   const sheets = await getSheets();
 
   const id = Date.now().toString();
+  const dateAdded = new Date().toISOString();
   const row = [
     id,
-    data.name,
-    data.institution || '',
-    data.researchArea || '',
-    data.profileUrl || '',
-    data.recentPublication || '',
-    data.publicationUrl || '',
+    dateAdded,
+    data.title,
+    data.url,
+    data.source || '',
+    data.authors || '',
+    data.institutions || '',
     'active'
   ];
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: CONFIG.researchers_spreadsheet_id,
-    range: 'Researchers!A:H',
+    range: 'Research!A:H',
     valueInputOption: 'RAW',
     requestBody: {
       values: [row]
     }
   });
 
-  return { id, ...data };
+  return { id, dateAdded, ...data };
 }
 
-// Update researcher
+// Update research item
 async function updateResearcher(id, data) {
   const sheets = await getSheets();
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: CONFIG.researchers_spreadsheet_id,
-    range: 'Researchers!A:H'
+    range: 'Research!A:H'
   });
 
   const rows = response.data.values || [];
   const rowIndex = rows.findIndex(row => row[0] === id);
 
   if (rowIndex === -1) {
-    throw new Error('Researcher not found');
+    throw new Error('Research item not found');
   }
 
   const existingRow = rows[rowIndex];
   const updatedRow = [
     existingRow[0], // ID
-    data.name || existingRow[1],
-    data.institution || existingRow[2] || '',
-    data.researchArea || existingRow[3] || '',
-    data.profileUrl || existingRow[4] || '',
-    data.recentPublication || existingRow[5] || '',
-    data.publicationUrl || existingRow[6] || '',
+    existingRow[1], // dateAdded
+    data.title || existingRow[2],
+    data.url || existingRow[3],
+    data.source || existingRow[4] || '',
+    data.authors || existingRow[5] || '',
+    data.institutions || existingRow[6] || '',
     existingRow[7] || 'active'
   ];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: CONFIG.researchers_spreadsheet_id,
-    range: `Researchers!A${rowIndex + 1}:H${rowIndex + 1}`,
+    range: `Research!A${rowIndex + 1}:H${rowIndex + 1}`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [updatedRow]
@@ -274,26 +278,26 @@ async function updateResearcher(id, data) {
   return { id, ...data };
 }
 
-// Delete researcher
+// Delete research item
 async function deleteResearcher(id) {
   const sheets = await getSheets();
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: CONFIG.researchers_spreadsheet_id,
-    range: 'Researchers!A:H'
+    range: 'Research!A:H'
   });
 
   const rows = response.data.values || [];
   const rowIndex = rows.findIndex(row => row[0] === id);
 
   if (rowIndex === -1) {
-    throw new Error('Researcher not found');
+    throw new Error('Research item not found');
   }
 
   // Mark as deleted
   await sheets.spreadsheets.values.update({
     spreadsheetId: CONFIG.researchers_spreadsheet_id,
-    range: `Researchers!H${rowIndex + 1}`,
+    range: `Research!H${rowIndex + 1}`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [['deleted']]

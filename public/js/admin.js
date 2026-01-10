@@ -73,12 +73,11 @@ function populateFormForEdit(item, section) {
   toggleFormFields(section);
 
   if (section === 'research') {
-    document.getElementById('researcher-name').value = item.name || '';
-    document.getElementById('institution').value = item.institution || '';
-    document.getElementById('research-area').value = item.researchArea || '';
-    document.getElementById('profile-url').value = item.profileUrl || '';
-    document.getElementById('recent-publication').value = item.recentPublication || '';
-    document.getElementById('publication-url').value = item.publicationUrl || '';
+    document.getElementById('research-title').value = item.title || '';
+    document.getElementById('research-url').value = item.url || '';
+    document.getElementById('research-source').value = item.source || '';
+    document.getElementById('authors').value = item.authors || '';
+    document.getElementById('institutions').value = item.institutions || '';
   } else {
     document.getElementById('title').value = item.title || '';
     document.getElementById('url').value = item.url || '';
@@ -112,21 +111,16 @@ async function loadItems(section) {
       const titleTd = document.createElement('td');
       const titleLink = document.createElement('a');
 
-      if (section === 'research') {
-        titleLink.href = item.profileUrl || item.publicationUrl || '#';
-        titleLink.textContent = item.name || item.recentPublication || 'Untitled';
-      } else {
-        titleLink.href = item.url || '#';
-        titleLink.textContent = item.title || 'Untitled';
-      }
+      titleLink.href = item.url || '#';
+      titleLink.textContent = item.title || 'Untitled';
 
       titleLink.target = '_blank';
       titleTd.appendChild(titleLink);
       tr.appendChild(titleTd);
 
-      // Source/Institution cell
+      // Source cell
       const sourceTd = document.createElement('td');
-      sourceTd.textContent = section === 'research' ? (item.institution || '-') : (item.source || '-');
+      sourceTd.textContent = item.source || '-';
       tr.appendChild(sourceTd);
 
       // Date cell
@@ -178,16 +172,15 @@ async function addItem(e) {
 
   if (section === 'research') {
     data = {
-      name: document.getElementById('researcher-name').value.trim(),
-      institution: document.getElementById('institution').value.trim(),
-      researchArea: document.getElementById('research-area').value.trim(),
-      profileUrl: document.getElementById('profile-url').value.trim(),
-      recentPublication: document.getElementById('recent-publication').value.trim(),
-      publicationUrl: document.getElementById('publication-url').value.trim()
+      title: document.getElementById('research-title').value.trim(),
+      url: document.getElementById('research-url').value.trim(),
+      source: document.getElementById('research-source').value.trim(),
+      authors: document.getElementById('authors').value.trim(),
+      institutions: document.getElementById('institutions').value.trim()
     };
 
-    if (!data.name) {
-      status.textContent = 'Researcher name is required';
+    if (!data.title || !data.url) {
+      status.textContent = 'Title and URL are required';
       status.style.color = '#cc0000';
       return;
     }
