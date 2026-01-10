@@ -346,4 +346,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 100);
     });
   }
+
+  // Auto-fetch metadata for Research URL field
+  const researchUrlInput = document.getElementById('research-url');
+  const researchTitleInput = document.getElementById('research-title');
+  const researchSourceInput = document.getElementById('research-source');
+
+  if (researchUrlInput) {
+    const handleResearchUrlChange = debounce(async (url) => {
+      if (!url || !url.startsWith('http')) return;
+      if (researchTitleInput.value.trim()) return;
+
+      formStatus.textContent = 'Fetching metadata...';
+      formStatus.style.color = '#666666';
+
+      const metadata = await fetchMetadata(url);
+
+      if (metadata) {
+        if (metadata.title && !researchTitleInput.value.trim()) {
+          researchTitleInput.value = metadata.title;
+        }
+        if (metadata.source && !researchSourceInput.value.trim()) {
+          researchSourceInput.value = metadata.source;
+        }
+        formStatus.textContent = 'Metadata loaded';
+        formStatus.style.color = '#008800';
+      } else {
+        formStatus.textContent = 'Could not fetch metadata';
+        formStatus.style.color = '#cc0000';
+      }
+
+      setTimeout(() => {
+        formStatus.textContent = '';
+      }, 2000);
+    }, 500);
+
+    researchUrlInput.addEventListener('input', (e) => {
+      handleResearchUrlChange(e.target.value.trim());
+    });
+
+    researchUrlInput.addEventListener('paste', () => {
+      setTimeout(() => {
+        handleResearchUrlChange(researchUrlInput.value.trim());
+      }, 100);
+    });
+  }
 });
