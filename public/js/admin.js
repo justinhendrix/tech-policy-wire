@@ -219,7 +219,8 @@ async function addItem(e) {
     }
 
     if (!response.ok) {
-      throw new Error(isEdit ? 'Failed to update item' : 'Failed to add item');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || (isEdit ? 'Failed to update item' : 'Failed to add item'));
     }
 
     status.textContent = isEdit ? 'Updated successfully!' : 'Added successfully!';
@@ -239,7 +240,7 @@ async function addItem(e) {
 
   } catch (error) {
     console.error('Error:', error);
-    status.textContent = isEdit ? 'Failed to update item' : 'Failed to add item';
+    status.textContent = error.message || (isEdit ? 'Failed to update item' : 'Failed to add item');
     status.style.color = '#cc0000';
   }
 }
