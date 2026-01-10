@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">Section - Tech Policy Press Field Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo-container">
+        <a href="/">
+          <img src="/images/Tech Policy Press Logo Final-01.png" alt="Tech Policy Press">
+        </a>
+      </div>
+      <div class="header-text">
+        <h1>FIELD NOTES</h1>
+        <p class="tagline">Aggregating news, analysis, research, and primary documents related to technology policy.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-page">
+    <h1 id="section-title">Loading...</h1>
+
+    <div id="items-container">
+      <p class="loading">Loading...</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <nav class="footer-nav">
+        <ul>
+          <li><a href="/">Back to Field Notes</a></li>
+          <li><a href="https://techpolicy.press">Tech Policy Press</a></li>
+        </ul>
+      </nav>
+      <div class="footer-copyright">
+        <p>&copy; 2025 Tech Policy Press Field Notes</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const sectionNames = {
+      news: 'News',
+      ideas: 'Ideas',
+      reports: 'Reports',
+      research: 'Research',
+      documents: 'Documents',
+      podcasts: 'Podcasts'
+    };
+
+    async function loadSection() {
+      const path = window.location.pathname;
+      const section = path.split('/').pop();
+
+      if (!sectionNames[section]) {
+        document.getElementById('section-title').textContent = 'Section Not Found';
+        document.getElementById('items-container').innerHTML = '<p>Invalid section</p>';
+        return;
+      }
+
+      document.getElementById('section-title').textContent = sectionNames[section];
+      document.getElementById('page-title').textContent = `${sectionNames[section]} - Tech Policy Press Field Notes`;
+
+      try {
+        const response = await fetch(`/api/content/${section}?limit=100`);
+        const items = await response.json();
+
+        const container = document.getElementById('items-container');
+        container.innerHTML = '';
+
+        if (!items || items.length === 0) {
+          container.innerHTML = '<p>No items found</p>';
+          return;
+        }
+
+        items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'item';
+
+          const link = document.createElement('a');
+          link.href = section === 'research' ? (item.publicationUrl || item.profileUrl) : item.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+
+          if (section === 'research') {
+            link.textContent = item.recentPublication || item.name;
+          } else if (item.source) {
+            link.textContent = `${item.source}: ${item.title}`;
+          } else {
+            link.textContent = item.title;
+          }
+
+          div.appendChild(link);
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+
+          if (section === 'research' && item.institution) {
+            meta.textContent = item.institution;
+          } else {
+            const date = new Date(item.dateAdded);
+            meta.textContent = date.toLocaleDateString();
+          }
+
+          div.appendChild(meta);
+          container.appendChild(div);
+        });
+
+      } catch (error) {
+        console.error('Error loading section:', error);
+        document.getElementById('items-container').innerHTML = '<p class="error">Failed to load content</p>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSection);
+  </script>
+</body>
+</html>
