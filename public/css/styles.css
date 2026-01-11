@@ -467,7 +467,7 @@ footer p a:hover {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  accent-color: var(--red-accent);
+  accent-color: var(--blue-accent);
 }
 
 .filter-row {

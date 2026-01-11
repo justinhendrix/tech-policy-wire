@@ -665,6 +665,109 @@ exports.handler = async (event, context) => {
       return { statusCode: 201, headers, body: JSON.stringify(result) };
     }
 
+    // GET /api/search - Search across all sections
+    if (event.httpMethod === 'GET' && segments[0] === 'search') {
+      const q = event.queryStringParameters?.q || '';
+      const limit = parseInt(event.queryStringParameters?.limit || '100');
+      const sections = event.queryStringParameters?.sections;
+      const dateFrom = event.queryStringParameters?.dateFrom;
+      const dateTo = event.queryStringParameters?.dateTo;
+      const sort = event.queryStringParameters?.sort || 'date';
+      const order = event.queryStringParameters?.order || 'desc';
+
+      if (!q || q.trim().length === 0) {
+        return { statusCode: 200, headers, body: JSON.stringify({ results: [], total: 0, query: '' }) };
+      }
+
+      const searchLower = q.trim().toLowerCase();
+      const sectionFilter = sections ? sections.split(',').map(s => s.trim()) : null;
+
+      // Fetch from all sections (no limit, we filter client-side)
+      const fetchPromises = [];
+      const sectionKeys = [];
+
+      if (!sectionFilter || sectionFilter.includes('news')) {
+        fetchPromises.push(getContentItems('news', null));
+        sectionKeys.push('news');
+      }
+      if (!sectionFilter || sectionFilter.includes('ideas')) {
+        fetchPromises.push(getContentItems('ideas', null));
+        sectionKeys.push('ideas');
+      }
+      if (!sectionFilter || sectionFilter.includes('reports')) {
+        fetchPromises.push(getContentItems('reports', null));
+        sectionKeys.push('reports');
+      }
+      if (!sectionFilter || sectionFilter.includes('documents')) {
+        fetchPromises.push(getContentItems('documents', null));
+        sectionKeys.push('documents');
+      }
+      if (!sectionFilter || sectionFilter.includes('podcasts')) {
+        fetchPromises.push(getContentItems('podcasts', null));
+        sectionKeys.push('podcasts');
+      }
+      if (!sectionFilter || sectionFilter.includes('research')) {
+        fetchPromises.push(getResearchers(null));
+        sectionKeys.push('research');
+      }
+
+      const fetchResults = await Promise.all(fetchPromises);
+
+      // Combine and filter results
+      let results = [];
+      fetchResults.forEach((items, index) => {
+        const section = sectionKeys[index];
+        items.forEach(item => {
+          const matchesSearch = (item.title && item.title.toLowerCase().includes(searchLower)) ||
+                                (item.source && item.source.toLowerCase().includes(searchLower)) ||
+                                (item.authors && item.authors.toLowerCase().includes(searchLower)) ||
+                                (item.institutions && item.institutions.toLowerCase().includes(searchLower));
+          if (matchesSearch) {
+            results.push({ ...item, section });
+          }
+        });
+      });
+
+      // Apply date range filter
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        results = results.filter(item => new Date(item.dateAdded || 0) >= fromDate);
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        results = results.filter(item => new Date(item.dateAdded || 0) <= toDate);
+      }
+
+      // Sort results
+      if (sort === 'date') {
+        results.sort((a, b) => {
+          const dateA = new Date(a.dateAdded || 0);
+          const dateB = new Date(b.dateAdded || 0);
+          return order === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+      } else if (sort === 'source') {
+        results.sort((a, b) => {
+          const sourceA = (a.source || '').toLowerCase();
+          const sourceB = (b.source || '').toLowerCase();
+          return order === 'asc' ? sourceA.localeCompare(sourceB) : sourceB.localeCompare(sourceA);
+        });
+      } else if (sort === 'title') {
+        results.sort((a, b) => {
+          const titleA = (a.title || '').toLowerCase();
+          const titleB = (b.title || '').toLowerCase();
+          return order === 'asc' ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
+        });
+      }
+
+      // Apply limit
+      if (limit) {
+        results = results.slice(0, limit);
+      }
+
+      return { statusCode: 200, headers, body: JSON.stringify({ results, total: results.length, query: q.trim() }) };
+    }
+
     return {
       statusCode: 404,
       headers,
