@@ -1,5 +1,5 @@
 // Configuration - Update this URL to match your Netlify deployment
-const API_URL = 'https://tech-policy-wire.netlify.app/api/submissions';
+const API_URL = 'https://tppfieldnotes.netlify.app/api/submissions';
 
 // DOM Elements
 const form = document.getElementById('clip-form');
