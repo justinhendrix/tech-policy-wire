@@ -74,6 +74,11 @@ header h1 {
   color: #000000;
 }
 
+.site-title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 .tagline {
   font-size: 0.85rem;
   color: var(--text-secondary);
