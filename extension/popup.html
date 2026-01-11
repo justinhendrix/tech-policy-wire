@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Field Notes Clipper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Field Notes</h1>
+      <p class="subtitle">Tech Policy Press</p>
+    </header>
+
+    <form id="clip-form">
+      <div class="form-group">
+        <label for="section">Category *</label>
+        <select id="section" name="section" required>
+          <option value="">Select category...</option>
+          <option value="news">News</option>
+          <option value="ideas">Ideas & Commentary</option>
+          <option value="reports">Reports</option>
+          <option value="research">Research</option>
+          <option value="documents">Documents</option>
+          <option value="podcasts">Podcasts</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" placeholder="Page title">
+      </div>
+
+      <div class="form-group">
+        <label for="url">URL</label>
+        <input type="url" id="url" name="url" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="source">Source</label>
+        <input type="text" id="source" name="source" placeholder="Publication name">
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" placeholder="Why is this relevant?"></textarea>
+      </div>
+
+      <button type="submit" id="submit-btn" class="btn">Submit to Queue</button>
+      <div id="status" class="status"></div>
+    </form>
+
+    <div id="success-view" class="success-view" style="display: none;">
+      <div class="success-icon">&#10003;</div>
+      <h2>Submitted!</h2>
+      <p>Your link has been added to the review queue.</p>
+      <button id="submit-another" class="btn btn-outline">Submit Another</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
