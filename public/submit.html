@@ -87,6 +87,12 @@
     .success-message a {
       color: #FF0033;
     }
+    /* Honeypot field - hidden from humans, visible to bots */
+    .form-group-hp {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+    }
   </style>
 </head>
 <body>
@@ -151,6 +157,12 @@
         <div class="form-group" style="display: flex; align-items: flex-start; gap: 0.5rem;">
           <input type="checkbox" id="newsletter-signup" name="newsletter-signup" style="flex-shrink: 0; margin-top: 0.25rem; width: auto;">
           <label for="newsletter-signup" style="font-weight: normal; cursor: pointer; flex: 1;">Sign up for the weekly Tech Policy Press newsletter</label>
+        </div>
+
+        <!-- Honeypot field - bots will fill this, humans won't see it -->
+        <div class="form-group-hp" aria-hidden="true">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
         </div>
 
         <button type="submit" class="btn" id="submit-btn">Submit Link</button>
@@ -264,7 +276,8 @@
           source: sourceInput.value.trim(),
           notes: document.getElementById('notes').value.trim(),
           submitterEmail: document.getElementById('submitter-email').value.trim(),
-          newsletterSignup: document.getElementById('newsletter-signup').checked
+          newsletterSignup: document.getElementById('newsletter-signup').checked,
+          website: document.getElementById('website').value // honeypot
         };
 
         if (!data.section || !data.url) {
@@ -283,6 +296,13 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
           });
+
+          if (response.status === 429) {
+            formStatus.textContent = 'Too many submissions. Please try again in a minute.';
+            formStatus.style.color = '#cc0000';
+            document.getElementById('submit-btn').disabled = false;
+            return;
+          }
 
           if (!response.ok) {
             throw new Error('Failed to submit');

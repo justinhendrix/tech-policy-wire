@@ -1,5 +1,34 @@
 const { google } = require('googleapis');
 
+// Simple in-memory rate limiting (resets on cold start, but good enough for basic protection)
+const rateLimitCache = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 submissions per minute per IP
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const record = rateLimitCache.get(ip);
+
+  if (!record) {
+    rateLimitCache.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+
+  // Reset window if expired
+  if (now - record.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitCache.set(ip, { count: 1, windowStart: now });
+    return false;
+  }
+
+  // Increment and check
+  record.count++;
+  if (record.count > RATE_LIMIT_MAX_REQUESTS) {
+    return true;
+  }
+
+  return false;
+}
+
 // Configuration from environment variables
 const CONFIG = {
   content_spreadsheet_id: process.env.CONTENT_SPREADSHEET_ID,
@@ -593,6 +622,26 @@ exports.handler = async (event, context) => {
     // POST /api/submissions - Add a new submission (public)
     if (event.httpMethod === 'POST' && segments[0] === 'submissions') {
       const data = JSON.parse(event.body);
+
+      // Honeypot check - if the hidden field is filled, it's a bot
+      if (data.website && data.website.trim() !== '') {
+        console.log('Honeypot triggered, rejecting submission');
+        // Return success to not tip off the bot, but don't save
+        return { statusCode: 201, headers, body: JSON.stringify({ id: 'rejected', success: true }) };
+      }
+
+      // Rate limiting check
+      const clientIp = event.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                       event.headers['client-ip'] ||
+                       'unknown';
+      if (isRateLimited(clientIp)) {
+        return {
+          statusCode: 429,
+          headers,
+          body: JSON.stringify({ error: 'Too many requests. Please try again later.' })
+        };
+      }
+
       const result = await addSubmission(data);
       return { statusCode: 201, headers, body: JSON.stringify(result) };
     }
