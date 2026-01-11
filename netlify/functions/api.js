@@ -485,46 +485,122 @@ async function dismissSubmission(id) {
   return { success: true };
 }
 
-// Get all content for homepage
+// Get all content for homepage using batchGet (single API call for all sections)
 async function getAllContent(search = '', limit = 10) {
-  const [news, ideas, reports, research, documents, podcasts] = await Promise.all([
-    getContentItems('news', limit),
-    getContentItems('ideas', limit),
-    getContentItems('reports', limit),
-    getResearchers(limit),
-    getContentItems('documents', limit),
-    getContentItems('podcasts', limit)
-  ]);
+  const sheets = await getSheets();
 
-  const filterBySearch = (items) => {
-    if (!search) return items;
-    const searchLower = search.toLowerCase();
-    return items.filter(item =>
-      (item.title && item.title.toLowerCase().includes(searchLower)) ||
-      (item.source && item.source.toLowerCase().includes(searchLower)) ||
-      (item.name && item.name.toLowerCase().includes(searchLower)) ||
-      (item.institution && item.institution.toLowerCase().includes(searchLower))
-    );
-  };
+  try {
+    // Fetch all content sections in a single batchGet call
+    const [contentResponse, researchResponse] = await Promise.all([
+      sheets.spreadsheets.values.batchGet({
+        spreadsheetId: CONFIG.content_spreadsheet_id,
+        ranges: ['News!A:G', 'Ideas!A:G', 'Reports!A:G', 'Documents!A:G', 'Podcasts!A:G']
+      }),
+      sheets.spreadsheets.values.get({
+        spreadsheetId: CONFIG.researchers_spreadsheet_id,
+        range: 'Research!A:H'
+      })
+    ]);
 
-  return {
-    news: filterBySearch(news),
-    ideas: filterBySearch(ideas),
-    reports: filterBySearch(reports),
-    research: filterBySearch(research),
-    documents: filterBySearch(documents),
-    podcasts: filterBySearch(podcasts)
-  };
+    const valueRanges = contentResponse.data.valueRanges || [];
+
+    // Process each section from batchGet response
+    const processContentRows = (rows) => {
+      if (!rows || rows.length <= 1) return [];
+      return rows.slice(1).map(row => ({
+        id: row[0] || '',
+        dateAdded: row[1] || '',
+        title: row[2] || '',
+        url: row[3] || '',
+        source: row[4] || '',
+        addedBy: row[5] || '',
+        status: row[6] || 'active'
+      })).filter(item => item.status !== 'deleted' && item.title)
+        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
+        .slice(0, limit || undefined);
+    };
+
+    const processResearchRows = (rows) => {
+      if (!rows || rows.length <= 1) return [];
+      return rows.slice(1).map(row => ({
+        id: row[0] || '',
+        dateAdded: row[1] || '',
+        title: row[2] || '',
+        url: row[3] || '',
+        source: row[4] || '',
+        authors: row[5] || '',
+        institutions: row[6] || '',
+        status: row[7] || 'active'
+      })).filter(item => item.status !== 'deleted' && item.title)
+        .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
+        .slice(0, limit || undefined);
+    };
+
+    const news = processContentRows(valueRanges[0]?.values);
+    const ideas = processContentRows(valueRanges[1]?.values);
+    const reports = processContentRows(valueRanges[2]?.values);
+    const documents = processContentRows(valueRanges[3]?.values);
+    const podcasts = processContentRows(valueRanges[4]?.values);
+    const research = processResearchRows(researchResponse.data.values);
+
+    const filterBySearch = (items) => {
+      if (!search) return items;
+      const searchLower = search.toLowerCase();
+      return items.filter(item =>
+        (item.title && item.title.toLowerCase().includes(searchLower)) ||
+        (item.source && item.source.toLowerCase().includes(searchLower)) ||
+        (item.authors && item.authors.toLowerCase().includes(searchLower)) ||
+        (item.institutions && item.institutions.toLowerCase().includes(searchLower))
+      );
+    };
+
+    return {
+      news: filterBySearch(news),
+      ideas: filterBySearch(ideas),
+      reports: filterBySearch(reports),
+      research: filterBySearch(research),
+      documents: filterBySearch(documents),
+      podcasts: filterBySearch(podcasts)
+    };
+  } catch (error) {
+    console.error('Error in getAllContent batchGet:', error.message);
+    // Fallback to individual fetches if batchGet fails
+    const [news, ideas, reports, research, documents, podcasts] = await Promise.all([
+      getContentItems('news', limit),
+      getContentItems('ideas', limit),
+      getContentItems('reports', limit),
+      getResearchers(limit),
+      getContentItems('documents', limit),
+      getContentItems('podcasts', limit)
+    ]);
+    return { news, ideas, reports, research, documents, podcasts };
+  }
 }
 
 // Main handler
 exports.handler = async (event, context) => {
-  const headers = {
+  // Base headers for all responses
+  const baseHeaders = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
   };
+
+  // Cache headers for GET requests (5 minutes browser, 10 minutes CDN with stale-while-revalidate)
+  const cacheHeaders = {
+    ...baseHeaders,
+    'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=300'
+  };
+
+  // No-cache headers for mutations and auth
+  const noCacheHeaders = {
+    ...baseHeaders,
+    'Cache-Control': 'no-store, no-cache, must-revalidate'
+  };
+
+  // Use appropriate headers based on request type
+  const headers = event.httpMethod === 'GET' ? cacheHeaders : noCacheHeaders;
 
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
