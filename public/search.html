@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search - Tech Policy Press Field Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo-container">
+        <a href="/">
+          <img src="/images/Tech Policy Press Logo Final-01.png" alt="Tech Policy Press">
+        </a>
+      </div>
+      <div class="header-text">
+        <a href="/" class="site-title-link"><h1>Field Notes</h1></a>
+        <p class="tagline">Aggregating news, analysis, research, and primary documents related to technology policy.</p>
+      </div>
+      <div class="header-search">
+        <form id="search-form" class="search-box" action="/search" method="get">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" id="search-input" name="q" placeholder="Search...">
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <div class="search-page">
+    <div class="search-header">
+      <h1 id="search-title">Search Results</h1>
+      <p id="search-summary" class="search-summary"></p>
+    </div>
+
+    <div id="results-container">
+      <p class="loading">Searching...</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <nav class="footer-nav">
+        <ul>
+          <li><a href="/">Back to Field Notes</a></li>
+          <li><a href="https://techpolicy.press">Tech Policy Press</a></li>
+        </ul>
+      </nav>
+      <div class="footer-copyright">
+        <p>&copy; 2026 Tech Policy Press</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const sectionLabels = {
+      news: 'News',
+      ideas: 'Ideas',
+      reports: 'Reports',
+      research: 'Research',
+      documents: 'Documents',
+      podcasts: 'Podcasts'
+    };
+
+    function getQueryFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('q') || '';
+    }
+
+    function renderResults(results, query) {
+      const container = document.getElementById('results-container');
+      const summary = document.getElementById('search-summary');
+
+      if (results.length === 0) {
+        container.innerHTML = '<p class="no-results">No results found for your search.</p>';
+        summary.textContent = `No results for "${query}"`;
+        return;
+      }
+
+      summary.textContent = `${results.length} result${results.length === 1 ? '' : 's'} for "${query}"`;
+
+      container.innerHTML = '';
+
+      results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'search-result';
+
+        const sectionTag = document.createElement('span');
+        sectionTag.className = 'section-tag';
+        sectionTag.textContent = sectionLabels[item.section] || item.section;
+        div.appendChild(sectionTag);
+
+        const link = document.createElement('a');
+        link.href = item.url || item.profileUrl || '#';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = item.title || 'Untitled';
+        link.className = 'result-title';
+        div.appendChild(link);
+
+        const meta = document.createElement('div');
+        meta.className = 'result-meta';
+
+        const metaParts = [];
+        if (item.source) metaParts.push(item.source);
+        if (item.dateAdded) {
+          const date = new Date(item.dateAdded);
+          metaParts.push(date.toLocaleDateString());
+        }
+        meta.textContent = metaParts.join(' · ');
+
+        div.appendChild(meta);
+        container.appendChild(div);
+      });
+    }
+
+    async function performSearch() {
+      const query = getQueryFromUrl();
+      const searchInput = document.getElementById('search-input');
+      searchInput.value = query;
+
+      if (!query) {
+        document.getElementById('search-title').textContent = 'Search';
+        document.getElementById('search-summary').textContent = 'Enter a search term to find content across all sections.';
+        document.getElementById('results-container').innerHTML = '';
+        return;
+      }
+
+      document.title = `"${query}" - Search - Tech Policy Press Field Notes`;
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        renderResults(data.results || [], query);
+      } catch (error) {
+        console.error('Search error:', error);
+        document.getElementById('results-container').innerHTML = '<p class="error">Failed to search. Please try again.</p>';
+      }
+    }
+
+    // Handle form submission
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const query = document.getElementById('search-input').value.trim();
+      if (query) {
+        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+      }
+    });
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', performSearch);
+
+    document.addEventListener('DOMContentLoaded', performSearch);
+  </script>
+</body>
+</html>

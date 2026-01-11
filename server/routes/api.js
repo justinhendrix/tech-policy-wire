@@ -32,6 +32,55 @@ router.get('/content', async (req, res) => {
   }
 });
 
+// Search across all sections
+router.get('/search', async (req, res) => {
+  try {
+    const { q, limit = 50 } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.json({ results: [], total: 0, query: '' });
+    }
+
+    const searchOptions = { search: q.trim(), limit: parseInt(limit) };
+
+    const [news, ideas, reports, documents, podcasts, researchers] = await Promise.all([
+      sheets.getContentItems('news', searchOptions),
+      sheets.getContentItems('ideas', searchOptions),
+      sheets.getContentItems('reports', searchOptions),
+      sheets.getContentItems('documents', searchOptions),
+      sheets.getContentItems('podcasts', searchOptions),
+      sheets.getResearchers(searchOptions)
+    ]);
+
+    // Combine and tag results with their section
+    const results = [
+      ...news.map(item => ({ ...item, section: 'news' })),
+      ...ideas.map(item => ({ ...item, section: 'ideas' })),
+      ...reports.map(item => ({ ...item, section: 'reports' })),
+      ...documents.map(item => ({ ...item, section: 'documents' })),
+      ...podcasts.map(item => ({ ...item, section: 'podcasts' })),
+      ...researchers.map(item => ({
+        ...item,
+        section: 'research',
+        title: item.name,
+        source: item.institution
+      }))
+    ];
+
+    // Sort by date (newest first)
+    results.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
+
+    res.json({
+      results,
+      total: results.length,
+      query: q.trim()
+    });
+  } catch (error) {
+    console.error('Error searching:', error);
+    res.status(500).json({ error: 'Failed to search content' });
+  }
+});
+
 // Get content for a specific section
 router.get('/content/:section', async (req, res) => {
   try {

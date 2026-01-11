@@ -156,17 +156,20 @@ async function loadContent(search = '') {
   }
 }
 
-// Initialize search
+// Initialize search - redirect to search page on submit
 function initSearch() {
   const searchInput = document.getElementById('search-input');
   if (!searchInput) return;
 
-  const debouncedSearch = debounce((value) => {
-    loadContent(value);
-  }, 300);
-
-  searchInput.addEventListener('input', (e) => {
-    debouncedSearch(e.target.value);
+  // Handle Enter key - redirect to search page
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const query = searchInput.value.trim();
+      if (query) {
+        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+      }
+    }
   });
 }
 
