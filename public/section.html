@@ -86,29 +86,26 @@
           div.className = 'item';
 
           const link = document.createElement('a');
-          link.href = section === 'research' ? (item.publicationUrl || item.profileUrl) : item.url;
+          link.href = item.url || '#';
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
-
-          if (section === 'research') {
-            link.textContent = item.recentPublication || item.name;
-          } else if (item.source) {
-            link.textContent = `${item.source}: ${item.title}`;
-          } else {
-            link.textContent = item.title;
-          }
+          link.textContent = item.title || 'Untitled';
 
           div.appendChild(link);
 
           const meta = document.createElement('div');
           meta.className = 'meta';
 
-          if (section === 'research' && item.institution) {
-            meta.textContent = item.institution;
-          } else {
+          // Build meta text based on available fields
+          const metaParts = [];
+          if (item.source) metaParts.push(item.source);
+          if (section === 'research' && item.authors) metaParts.push(item.authors);
+          if (section === 'research' && item.institutions) metaParts.push(item.institutions);
+          if (item.dateAdded) {
             const date = new Date(item.dateAdded);
-            meta.textContent = date.toLocaleDateString();
+            metaParts.push(date.toLocaleDateString());
           }
+          meta.textContent = metaParts.join(' · ');
 
           div.appendChild(meta);
           container.appendChild(div);

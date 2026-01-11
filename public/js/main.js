@@ -1,6 +1,8 @@
 // Tech Policy Wire - Main JavaScript
 
 const API_BASE = '/api';
+const MAX_ITEMS = 10; // Maximum items per section
+const EXTRA_ITEMS = 5; // Extra items to fetch for flexible fitting
 
 // Debounce function for search
 function debounce(func, wait) {
@@ -38,7 +40,7 @@ function renderItem(item) {
   return li;
 }
 
-// Render items into a list
+// Render items into a list, storing extras for later fitting
 function renderList(listId, items) {
   const list = document.getElementById(listId);
   if (!list) return;
@@ -53,8 +55,67 @@ function renderList(listId, items) {
     return;
   }
 
-  items.forEach(item => {
+  // Initially render up to MAX_ITEMS
+  const initialItems = items.slice(0, MAX_ITEMS);
+  initialItems.forEach(item => {
     list.appendChild(renderItem(item));
+  });
+
+  // Store extra items for potential fitting
+  list.dataset.extraItems = JSON.stringify(items.slice(MAX_ITEMS));
+}
+
+// Adjust item counts across columns to balance heights
+function balanceColumns() {
+  const columns = document.querySelectorAll('.column');
+  if (columns.length === 0) return;
+
+  // Get the tallest column height
+  let maxHeight = 0;
+  columns.forEach(col => {
+    const list = col.querySelector('ul');
+    if (list) {
+      maxHeight = Math.max(maxHeight, list.scrollHeight);
+    }
+  });
+
+  // For columns with extra items that are shorter, try adding more
+  columns.forEach(col => {
+    const list = col.querySelector('ul');
+    if (!list) return;
+
+    const extraItems = list.dataset.extraItems;
+    if (!extraItems) return;
+
+    try {
+      const extras = JSON.parse(extraItems);
+      if (extras.length === 0) return;
+
+      // Check if this column is shorter and can fit more
+      const currentHeight = list.scrollHeight;
+      const heightDiff = maxHeight - currentHeight;
+
+      // Estimate item height (average of current items)
+      const currentItems = list.querySelectorAll('li');
+      if (currentItems.length === 0) return;
+
+      const avgItemHeight = currentHeight / currentItems.length;
+
+      // Calculate how many more items might fit
+      const potentialExtraItems = Math.floor(heightDiff / avgItemHeight);
+
+      if (potentialExtraItems > 0) {
+        const itemsToAdd = extras.slice(0, potentialExtraItems);
+        itemsToAdd.forEach(item => {
+          list.appendChild(renderItem(item));
+        });
+
+        // Update remaining extras
+        list.dataset.extraItems = JSON.stringify(extras.slice(potentialExtraItems));
+      }
+    } catch (e) {
+      console.error('Error parsing extra items:', e);
+    }
   });
 }
 
@@ -74,6 +135,13 @@ async function loadContent(search = '') {
     renderList('research-list', data.research);
     renderList('documents-list', data.documents);
     renderList('podcasts-list', data.podcasts);
+
+    // After initial render, balance columns
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        balanceColumns();
+      });
+    });
 
   } catch (error) {
     console.error('Error loading content:', error);
@@ -102,8 +170,15 @@ function initSearch() {
   });
 }
 
+// Handle window resize - rebalance columns
+const handleResize = debounce(() => {
+  // Reload to rebalance (simple approach)
+  loadContent();
+}, 500);
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadContent();
   initSearch();
+  window.addEventListener('resize', handleResize);
 });

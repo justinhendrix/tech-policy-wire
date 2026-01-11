@@ -486,14 +486,14 @@ async function dismissSubmission(id) {
 }
 
 // Get all content for homepage
-async function getAllContent(search = '') {
+async function getAllContent(search = '', limit = 10) {
   const [news, ideas, reports, research, documents, podcasts] = await Promise.all([
-    getContentItems('news'),
-    getContentItems('ideas'),
-    getContentItems('reports'),
-    getResearchers(),
-    getContentItems('documents'),
-    getContentItems('podcasts')
+    getContentItems('news', limit),
+    getContentItems('ideas', limit),
+    getContentItems('reports', limit),
+    getResearchers(limit),
+    getContentItems('documents', limit),
+    getContentItems('podcasts', limit)
   ]);
 
   const filterBySearch = (items) => {
@@ -540,7 +540,10 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'GET' && (segments[0] === 'content' || segments.length === 0)) {
       if (segments.length === 1 || segments.length === 0) {
         const search = event.queryStringParameters?.search || '';
-        const data = await getAllContent(search);
+        const limit = event.queryStringParameters?.limit
+          ? parseInt(event.queryStringParameters.limit)
+          : 15; // Default to 15 to allow dynamic fitting
+        const data = await getAllContent(search, limit);
         return { statusCode: 200, headers, body: JSON.stringify(data) };
       }
 
