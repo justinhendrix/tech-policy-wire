@@ -94,7 +94,8 @@ async function loadItems(section) {
   tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading...</td></tr>';
 
   try {
-    const response = await fetch(`${API_BASE}/content/${section}?limit=50`);
+    // Add cache-busting timestamp for admin to always get fresh data
+    const response = await fetch(`${API_BASE}/content/${section}?limit=50&_t=${Date.now()}`);
     const items = await response.json();
 
     tbody.innerHTML = '';
@@ -276,7 +277,8 @@ async function loadSubmissions() {
   const countSpan = document.getElementById('submissions-count');
 
   try {
-    const response = await fetch(`${API_BASE}/submissions`);
+    // Add cache-busting timestamp for admin to always get fresh data
+    const response = await fetch(`${API_BASE}/submissions?_t=${Date.now()}`);
     const items = await response.json();
 
     if (!items || items.length === 0) {
