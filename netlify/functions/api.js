@@ -622,6 +622,22 @@ exports.handler = async (event, context) => {
       return { statusCode: 200, headers, body: JSON.stringify(items) };
     }
 
+    // POST /api/submissions/:id/approve - Approve a submission (admin)
+    // Must come before the general POST /api/submissions route
+    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'approve') {
+      const id = segments[1];
+      const result = await approveSubmission(id);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
+    }
+
+    // POST /api/submissions/:id/dismiss - Dismiss a submission (admin)
+    // Must come before the general POST /api/submissions route
+    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'dismiss') {
+      const id = segments[1];
+      const result = await dismissSubmission(id);
+      return { statusCode: 200, headers, body: JSON.stringify(result) };
+    }
+
     // POST /api/submissions - Add a new submission (public)
     if (event.httpMethod === 'POST' && segments[0] === 'submissions') {
       const data = JSON.parse(event.body);
@@ -647,20 +663,6 @@ exports.handler = async (event, context) => {
 
       const result = await addSubmission(data);
       return { statusCode: 201, headers, body: JSON.stringify(result) };
-    }
-
-    // POST /api/submissions/:id/approve - Approve a submission (admin)
-    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'approve') {
-      const id = segments[1];
-      const result = await approveSubmission(id);
-      return { statusCode: 200, headers, body: JSON.stringify(result) };
-    }
-
-    // POST /api/submissions/:id/dismiss - Dismiss a submission (admin)
-    if (event.httpMethod === 'POST' && segments[0] === 'submissions' && segments[1] && segments[2] === 'dismiss') {
-      const id = segments[1];
-      const result = await dismissSubmission(id);
-      return { statusCode: 200, headers, body: JSON.stringify(result) };
     }
 
     return {
