@@ -38,6 +38,47 @@
       <p id="search-summary" class="search-summary"></p>
     </div>
 
+    <div class="search-filters">
+      <div class="filter-group">
+        <label class="filter-label">Sections</label>
+        <div class="section-checkboxes">
+          <label class="checkbox-label"><input type="checkbox" name="section" value="news" checked> News</label>
+          <label class="checkbox-label"><input type="checkbox" name="section" value="ideas" checked> Ideas</label>
+          <label class="checkbox-label"><input type="checkbox" name="section" value="reports" checked> Reports</label>
+          <label class="checkbox-label"><input type="checkbox" name="section" value="research" checked> Research</label>
+          <label class="checkbox-label"><input type="checkbox" name="section" value="documents" checked> Documents</label>
+          <label class="checkbox-label"><input type="checkbox" name="section" value="podcasts" checked> Podcasts</label>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label class="filter-label" for="date-from">From</label>
+          <input type="date" id="date-from" class="filter-input">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="date-to">To</label>
+          <input type="date" id="date-to" class="filter-input">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label" for="sort-by">Sort by</label>
+          <select id="sort-by" class="filter-select">
+            <option value="date-desc">Date (Newest)</option>
+            <option value="date-asc">Date (Oldest)</option>
+            <option value="source-asc">Source (A-Z)</option>
+            <option value="source-desc">Source (Z-A)</option>
+            <option value="title-asc">Title (A-Z)</option>
+            <option value="title-desc">Title (Z-A)</option>
+          </select>
+        </div>
+
+        <button type="button" id="apply-filters" class="filter-btn">Apply</button>
+        <button type="button" id="reset-filters" class="filter-btn filter-btn-secondary">Reset</button>
+      </div>
+    </div>
+
     <div id="results-container">
       <p class="loading">Searching...</p>
     </div>
@@ -67,9 +108,66 @@
       podcasts: 'Podcasts'
     };
 
-    function getQueryFromUrl() {
+    function getFiltersFromUrl() {
       const params = new URLSearchParams(window.location.search);
-      return params.get('q') || '';
+      return {
+        q: params.get('q') || '',
+        sections: params.get('sections') ? params.get('sections').split(',') : null,
+        dateFrom: params.get('dateFrom') || '',
+        dateTo: params.get('dateTo') || '',
+        sort: params.get('sort') || 'date',
+        order: params.get('order') || 'desc'
+      };
+    }
+
+    function updateUrlWithFilters(filters) {
+      const params = new URLSearchParams();
+      if (filters.q) params.set('q', filters.q);
+      if (filters.sections && filters.sections.length < 6) {
+        params.set('sections', filters.sections.join(','));
+      }
+      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.set('dateTo', filters.dateTo);
+      if (filters.sort !== 'date' || filters.order !== 'desc') {
+        params.set('sort', filters.sort);
+        params.set('order', filters.order);
+      }
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      window.history.pushState({}, '', newUrl);
+    }
+
+    function getSelectedSections() {
+      const checkboxes = document.querySelectorAll('input[name="section"]:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    function setSelectedSections(sections) {
+      const checkboxes = document.querySelectorAll('input[name="section"]');
+      checkboxes.forEach(cb => {
+        cb.checked = !sections || sections.includes(cb.value);
+      });
+    }
+
+    function getCurrentFilters() {
+      const sortValue = document.getElementById('sort-by').value;
+      const [sort, order] = sortValue.split('-');
+      return {
+        q: document.getElementById('search-input').value.trim(),
+        sections: getSelectedSections(),
+        dateFrom: document.getElementById('date-from').value,
+        dateTo: document.getElementById('date-to').value,
+        sort,
+        order
+      };
+    }
+
+    function setFiltersFromUrl() {
+      const filters = getFiltersFromUrl();
+      document.getElementById('search-input').value = filters.q;
+      setSelectedSections(filters.sections);
+      document.getElementById('date-from').value = filters.dateFrom;
+      document.getElementById('date-to').value = filters.dateTo;
+      document.getElementById('sort-by').value = `${filters.sort}-${filters.order}`;
     }
 
     function renderResults(results, query) {
@@ -120,43 +218,78 @@
     }
 
     async function performSearch() {
-      const query = getQueryFromUrl();
-      const searchInput = document.getElementById('search-input');
-      searchInput.value = query;
+      const filters = getFiltersFromUrl();
 
-      if (!query) {
+      if (!filters.q) {
         document.getElementById('search-title').textContent = 'Search';
         document.getElementById('search-summary').textContent = 'Enter a search term to find content across all sections.';
         document.getElementById('results-container').innerHTML = '';
         return;
       }
 
-      document.title = `"${query}" - Search - Tech Policy Press Field Notes`;
+      document.getElementById('results-container').innerHTML = '<p class="loading">Searching...</p>';
+      document.title = `"${filters.q}" - Search - Tech Policy Press Field Notes`;
 
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const params = new URLSearchParams();
+        params.set('q', filters.q);
+        if (filters.sections && filters.sections.length < 6) {
+          params.set('sections', filters.sections.join(','));
+        }
+        if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+        if (filters.dateTo) params.set('dateTo', filters.dateTo);
+        params.set('sort', filters.sort);
+        params.set('order', filters.order);
+
+        const response = await fetch(`/api/search?${params.toString()}`);
         const data = await response.json();
 
-        renderResults(data.results || [], query);
+        renderResults(data.results || [], filters.q);
       } catch (error) {
         console.error('Search error:', error);
         document.getElementById('results-container').innerHTML = '<p class="error">Failed to search. Please try again.</p>';
       }
     }
 
+    function applyFilters() {
+      const filters = getCurrentFilters();
+      if (!filters.q) return;
+      updateUrlWithFilters(filters);
+      performSearch();
+    }
+
+    function resetFilters() {
+      const query = document.getElementById('search-input').value.trim();
+      setSelectedSections(null); // Check all
+      document.getElementById('date-from').value = '';
+      document.getElementById('date-to').value = '';
+      document.getElementById('sort-by').value = 'date-desc';
+      if (query) {
+        updateUrlWithFilters({ q: query, sections: null, dateFrom: '', dateTo: '', sort: 'date', order: 'desc' });
+        performSearch();
+      }
+    }
+
     // Handle form submission
     document.getElementById('search-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const query = document.getElementById('search-input').value.trim();
-      if (query) {
-        window.location.href = `/search?q=${encodeURIComponent(query)}`;
-      }
+      applyFilters();
     });
 
-    // Handle browser back/forward
-    window.addEventListener('popstate', performSearch);
+    // Apply and Reset buttons
+    document.getElementById('apply-filters').addEventListener('click', applyFilters);
+    document.getElementById('reset-filters').addEventListener('click', resetFilters);
 
-    document.addEventListener('DOMContentLoaded', performSearch);
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      setFiltersFromUrl();
+      performSearch();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setFiltersFromUrl();
+      performSearch();
+    });
   </script>
 </body>
 </html>

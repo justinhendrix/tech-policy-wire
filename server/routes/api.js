@@ -35,40 +35,95 @@ router.get('/content', async (req, res) => {
 // Search across all sections
 router.get('/search', async (req, res) => {
   try {
-    const { q, limit = 50 } = req.query;
+    const { q, limit = 100, sections, dateFrom, dateTo, sort = 'date', order = 'desc' } = req.query;
 
     if (!q || q.trim().length === 0) {
       return res.json({ results: [], total: 0, query: '' });
     }
 
+    // Parse sections filter (comma-separated)
+    const sectionFilter = sections ? sections.split(',').map(s => s.trim()) : null;
+
     const searchOptions = { search: q.trim(), limit: parseInt(limit) };
 
-    const [news, ideas, reports, documents, podcasts, researchers] = await Promise.all([
-      sheets.getContentItems('news', searchOptions),
-      sheets.getContentItems('ideas', searchOptions),
-      sheets.getContentItems('reports', searchOptions),
-      sheets.getContentItems('documents', searchOptions),
-      sheets.getContentItems('podcasts', searchOptions),
-      sheets.getResearchers(searchOptions)
-    ]);
+    // Fetch from all sections or filtered sections
+    const fetchPromises = [];
+    const sectionKeys = [];
+
+    if (!sectionFilter || sectionFilter.includes('news')) {
+      fetchPromises.push(sheets.getContentItems('news', searchOptions));
+      sectionKeys.push('news');
+    }
+    if (!sectionFilter || sectionFilter.includes('ideas')) {
+      fetchPromises.push(sheets.getContentItems('ideas', searchOptions));
+      sectionKeys.push('ideas');
+    }
+    if (!sectionFilter || sectionFilter.includes('reports')) {
+      fetchPromises.push(sheets.getContentItems('reports', searchOptions));
+      sectionKeys.push('reports');
+    }
+    if (!sectionFilter || sectionFilter.includes('documents')) {
+      fetchPromises.push(sheets.getContentItems('documents', searchOptions));
+      sectionKeys.push('documents');
+    }
+    if (!sectionFilter || sectionFilter.includes('podcasts')) {
+      fetchPromises.push(sheets.getContentItems('podcasts', searchOptions));
+      sectionKeys.push('podcasts');
+    }
+    if (!sectionFilter || sectionFilter.includes('research')) {
+      fetchPromises.push(sheets.getResearchers(searchOptions));
+      sectionKeys.push('research');
+    }
+
+    const fetchResults = await Promise.all(fetchPromises);
 
     // Combine and tag results with their section
-    const results = [
-      ...news.map(item => ({ ...item, section: 'news' })),
-      ...ideas.map(item => ({ ...item, section: 'ideas' })),
-      ...reports.map(item => ({ ...item, section: 'reports' })),
-      ...documents.map(item => ({ ...item, section: 'documents' })),
-      ...podcasts.map(item => ({ ...item, section: 'podcasts' })),
-      ...researchers.map(item => ({
-        ...item,
-        section: 'research',
-        title: item.name,
-        source: item.institution
-      }))
-    ];
+    let results = [];
+    fetchResults.forEach((items, index) => {
+      const section = sectionKeys[index];
+      if (section === 'research') {
+        results.push(...items.map(item => ({
+          ...item,
+          section: 'research',
+          title: item.name,
+          source: item.institution
+        })));
+      } else {
+        results.push(...items.map(item => ({ ...item, section })));
+      }
+    });
 
-    // Sort by date (newest first)
-    results.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0));
+    // Apply date range filter
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      results = results.filter(item => new Date(item.dateAdded || 0) >= fromDate);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999); // Include the entire end day
+      results = results.filter(item => new Date(item.dateAdded || 0) <= toDate);
+    }
+
+    // Sort results
+    if (sort === 'date') {
+      results.sort((a, b) => {
+        const dateA = new Date(a.dateAdded || 0);
+        const dateB = new Date(b.dateAdded || 0);
+        return order === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+    } else if (sort === 'source') {
+      results.sort((a, b) => {
+        const sourceA = (a.source || '').toLowerCase();
+        const sourceB = (b.source || '').toLowerCase();
+        return order === 'asc' ? sourceA.localeCompare(sourceB) : sourceB.localeCompare(sourceA);
+      });
+    } else if (sort === 'title') {
+      results.sort((a, b) => {
+        const titleA = (a.title || '').toLowerCase();
+        const titleB = (b.title || '').toLowerCase();
+        return order === 'asc' ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
+      });
+    }
 
     res.json({
       results,
