@@ -29,7 +29,7 @@ body {
 header {
   background: #ffffff;
   padding: 1.5rem 2rem;
-  border-bottom: 3px solid #d4d4d4;
+  border-bottom: 1.5px solid #d4d4d4;
 }
 
 .header-content {
@@ -140,7 +140,7 @@ main {
   font-weight: 600;
   margin-bottom: 1.25rem;
   padding-bottom: 0.625rem;
-  border-bottom: 2px solid #333333;
+  border-bottom: 1px solid #333333;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: #000000;
@@ -291,7 +291,7 @@ footer p a:hover {
   font-weight: 700;
   margin-bottom: 2rem;
   padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--red-accent);
+  border-bottom: 1px solid var(--red-accent);
 }
 
 .section-page .item {
@@ -467,7 +467,7 @@ footer p a:hover {
   font-size: 0.75rem;
   color: var(--text-secondary);
   background: transparent;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .admin-table td a {
