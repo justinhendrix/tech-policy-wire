@@ -45,7 +45,7 @@ async function getContentItems(section, options = {}) {
     throw new Error(`Invalid section: ${section}`);
   }
 
-  const { limit = 10, offset = 0, search = '' } = options;
+  const { limit = 10, offset = 0, search = '', includeTotal = false } = options;
 
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -54,7 +54,9 @@ async function getContentItems(section, options = {}) {
     });
 
     const rows = response.data.values || [];
-    if (rows.length <= 1) return []; // Only header or empty
+    if (rows.length <= 1) {
+      return includeTotal ? { items: [], total: 0 } : [];
+    }
 
     // Skip header row
     let items = rows.slice(1).map(row => ({
@@ -82,11 +84,15 @@ async function getContentItems(section, options = {}) {
     // Sort by date (newest first)
     items.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
 
+    const total = items.length;
+
     // Apply pagination
-    return items.slice(offset, offset + limit);
+    const paginatedItems = items.slice(offset, offset + limit);
+
+    return includeTotal ? { items: paginatedItems, total } : paginatedItems;
   } catch (error) {
     console.error(`Error fetching ${section}:`, error.message);
-    return [];
+    return includeTotal ? { items: [], total: 0 } : [];
   }
 }
 
@@ -182,7 +188,7 @@ async function deleteContentItem(section, id) {
 // Get researchers
 async function getResearchers(options = {}) {
   const sheets = await getClient();
-  const { limit = 10, offset = 0, search = '' } = options;
+  const { limit = 10, offset = 0, search = '', includeTotal = false } = options;
 
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -191,7 +197,9 @@ async function getResearchers(options = {}) {
     });
 
     const rows = response.data.values || [];
-    if (rows.length <= 1) return [];
+    if (rows.length <= 1) {
+      return includeTotal ? { items: [], total: 0 } : [];
+    }
 
     let items = rows.slice(1).map(row => ({
       id: row[0] || '',
@@ -217,10 +225,13 @@ async function getResearchers(options = {}) {
       );
     }
 
-    return items.slice(offset, offset + limit);
+    const total = items.length;
+    const paginatedItems = items.slice(offset, offset + limit);
+
+    return includeTotal ? { items: paginatedItems, total } : paginatedItems;
   } catch (error) {
     console.error('Error fetching researchers:', error.message);
-    return [];
+    return includeTotal ? { items: [], total: 0 } : [];
   }
 }
 

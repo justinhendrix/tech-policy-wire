@@ -39,25 +39,27 @@ router.get('/content/:section', async (req, res) => {
     const { search, limit = 50, offset = 0 } = req.query;
 
     if (section === 'research') {
-      const researchers = await sheets.getResearchers({
+      const result = await sheets.getResearchers({
         limit: parseInt(limit),
         offset: parseInt(offset),
-        search
+        search,
+        includeTotal: true
       });
-      return res.json(researchers);
+      return res.json(result);
     }
 
     if (!sheets.SECTION_SHEETS[section]) {
       return res.status(400).json({ error: 'Invalid section' });
     }
 
-    const items = await sheets.getContentItems(section, {
+    const result = await sheets.getContentItems(section, {
       limit: parseInt(limit),
       offset: parseInt(offset),
-      search
+      search,
+      includeTotal: true
     });
 
-    res.json(items);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching section:', error);
     res.status(500).json({ error: 'Failed to fetch content' });

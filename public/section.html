@@ -30,6 +30,8 @@
     <div id="items-container">
       <p class="loading">Loading...</p>
     </div>
+
+    <div id="pagination" class="pagination"></div>
   </div>
 
   <footer>
@@ -56,28 +58,94 @@
       podcasts: 'Podcasts'
     };
 
+    const ITEMS_PER_PAGE = 50;
+    let currentSection = '';
+    let currentPage = 1;
+    let totalItems = 0;
+
+    function getPageFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return parseInt(params.get('page')) || 1;
+    }
+
+    function updateUrl(page) {
+      const url = new URL(window.location);
+      if (page === 1) {
+        url.searchParams.delete('page');
+      } else {
+        url.searchParams.set('page', page);
+      }
+      window.history.pushState({}, '', url);
+    }
+
+    function renderPagination() {
+      const paginationContainer = document.getElementById('pagination');
+      const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+      if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+
+      // Previous button
+      if (currentPage > 1) {
+        html += `<a href="?page=${currentPage - 1}" class="pagination-btn" data-page="${currentPage - 1}">&larr; Previous</a>`;
+      }
+
+      // Page info
+      html += `<span class="pagination-info">Page ${currentPage} of ${totalPages}</span>`;
+
+      // Next button
+      if (currentPage < totalPages) {
+        html += `<a href="?page=${currentPage + 1}" class="pagination-btn" data-page="${currentPage + 1}">Next &rarr;</a>`;
+      }
+
+      paginationContainer.innerHTML = html;
+
+      // Add click handlers
+      paginationContainer.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = parseInt(btn.dataset.page);
+          currentPage = page;
+          updateUrl(page);
+          loadSection();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
     async function loadSection() {
       const path = window.location.pathname;
-      const section = path.split('/').pop();
+      currentSection = path.split('/').pop();
+      currentPage = getPageFromUrl();
 
-      if (!sectionNames[section]) {
+      if (!sectionNames[currentSection]) {
         document.getElementById('section-title').textContent = 'Section Not Found';
         document.getElementById('items-container').innerHTML = '<p>Invalid section</p>';
         return;
       }
 
-      document.getElementById('section-title').textContent = sectionNames[section];
-      document.getElementById('page-title').textContent = `${sectionNames[section]} - Tech Policy Press Field Notes`;
+      document.getElementById('section-title').textContent = sectionNames[currentSection];
+      document.getElementById('page-title').textContent = `${sectionNames[currentSection]} - Tech Policy Press Field Notes`;
+
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
       try {
-        const response = await fetch(`/api/content/${section}?limit=100`);
-        const items = await response.json();
+        const response = await fetch(`/api/content/${currentSection}?limit=${ITEMS_PER_PAGE}&offset=${offset}`);
+        const data = await response.json();
+
+        const items = data.items || data;
+        totalItems = data.total || items.length;
 
         const container = document.getElementById('items-container');
         container.innerHTML = '';
 
         if (!items || items.length === 0) {
           container.innerHTML = '<p>No items found</p>';
+          renderPagination();
           return;
         }
 
@@ -99,8 +167,8 @@
           // Build meta text based on available fields
           const metaParts = [];
           if (item.source) metaParts.push(item.source);
-          if (section === 'research' && item.authors) metaParts.push(item.authors);
-          if (section === 'research' && item.institutions) metaParts.push(item.institutions);
+          if (currentSection === 'research' && item.authors) metaParts.push(item.authors);
+          if (currentSection === 'research' && item.institutions) metaParts.push(item.institutions);
           if (item.dateAdded) {
             const date = new Date(item.dateAdded);
             metaParts.push(date.toLocaleDateString());
@@ -111,11 +179,18 @@
           container.appendChild(div);
         });
 
+        renderPagination();
+
       } catch (error) {
         console.error('Error loading section:', error);
         document.getElementById('items-container').innerHTML = '<p class="error">Failed to load content</p>';
       }
     }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', () => {
+      loadSection();
+    });
 
     document.addEventListener('DOMContentLoaded', loadSection);
   </script>
