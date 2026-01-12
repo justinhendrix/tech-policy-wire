@@ -4,12 +4,17 @@ const API_BASE = '/api';
 const MAX_ITEMS = 10; // Maximum items per section
 const EXTRA_ITEMS = 5; // Extra items to fetch for flexible fitting
 
-// Format date for display (e.g., "Jan 12, 2026")
+// Format date for display (e.g., "Jan 12" for current year, "Jan 12, 2025" for prior years)
 function formatDate(dateString) {
   if (!dateString) return null;
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const currentYear = new Date().getFullYear();
+  const options = { month: 'short', day: 'numeric' };
+  if (date.getFullYear() !== currentYear) {
+    options.year = 'numeric';
+  }
+  return date.toLocaleDateString('en-US', options);
 }
 
 // Debounce function for search
