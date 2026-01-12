@@ -200,6 +200,11 @@ main {
   letter-spacing: 0.5px;
 }
 
+.item-date {
+  color: var(--text-light);
+  text-transform: none;
+}
+
 .more-link {
   display: inline-block;
   margin-top: 0.75rem;

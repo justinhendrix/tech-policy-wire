@@ -4,6 +4,14 @@ const API_BASE = '/api';
 const MAX_ITEMS = 10; // Maximum items per section
 const EXTRA_ITEMS = 5; // Extra items to fetch for flexible fitting
 
+// Format date for display (e.g., "Jan 12, 2026")
+function formatDate(dateString) {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return null;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // Debounce function for search
 function debounce(func, wait) {
   let timeout;
@@ -29,11 +37,20 @@ function renderItem(item) {
   link.textContent = item.title;
   li.appendChild(link);
 
-  // Add source below title
-  if (item.source) {
+  // Add source and date below title
+  if (item.source || item.dateAdded) {
     const source = document.createElement('span');
     source.className = 'source';
-    source.textContent = item.source;
+
+    let sourceText = item.source || '';
+    const formattedDate = formatDate(item.dateAdded);
+    if (formattedDate) {
+      if (sourceText) {
+        sourceText += ' ';
+      }
+      sourceText += `<span class="item-date">| ${formattedDate}</span>`;
+    }
+    source.innerHTML = sourceText;
     li.appendChild(source);
   }
 
