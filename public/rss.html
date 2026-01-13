@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSS Feeds - Field Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .rss-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .rss-intro {
+      margin-bottom: 2rem;
+      color: var(--text-light);
+    }
+    .rss-list {
+      list-style: none;
+      padding: 0;
+    }
+    .rss-list li {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--surface);
+      border-radius: 4px;
+    }
+    .rss-list a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .rss-list a:hover {
+      color: var(--primary);
+    }
+    .rss-icon {
+      width: 24px;
+      height: 24px;
+      color: #f26522;
+      flex-shrink: 0;
+    }
+    .rss-description {
+      font-size: 0.875rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
+      margin-left: 2.25rem;
+    }
+    .all-feeds {
+      background: var(--primary-light) !important;
+      border: 1px solid var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo-container">
+        <a href="https://techpolicy.press">
+          <img src="/images/Tech Policy Press Logo Final-01.png" alt="Tech Policy Press">
+        </a>
+      </div>
+      <div class="header-text">
+        <a href="/" class="site-title-link"><h1>Field Notes</h1></a>
+        <p class="tagline">Aggregating news, analysis, research, and primary documents related to technology policy.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="rss-container">
+    <h2>RSS Feeds</h2>
+    <p class="rss-intro">Subscribe to our RSS feeds to stay updated on the latest tech policy content. Use your favorite RSS reader to follow all sections or just the ones you're interested in.</p>
+
+    <ul class="rss-list">
+      <li class="all-feeds">
+        <a href="/api/rss">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          All Sections
+        </a>
+        <p class="rss-description">Combined feed with the latest from all sections</p>
+      </li>
+      <li>
+        <a href="/api/rss/news">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          News
+        </a>
+        <p class="rss-description">Tech policy news coverage from various outlets</p>
+      </li>
+      <li>
+        <a href="/api/rss/ideas">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          Ideas
+        </a>
+        <p class="rss-description">Opinion pieces, analysis, and commentary</p>
+      </li>
+      <li>
+        <a href="/api/rss/reports">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          Reports
+        </a>
+        <p class="rss-description">Research reports and studies</p>
+      </li>
+      <li>
+        <a href="/api/rss/documents">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          Documents
+        </a>
+        <p class="rss-description">Primary documents, legislation, and official filings</p>
+      </li>
+      <li>
+        <a href="/api/rss/podcasts">
+          <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
+            <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
+            <circle cx="5" cy="19" r="2"/>
+          </svg>
+          Podcasts
+        </a>
+        <p class="rss-description">Podcast episodes covering tech policy topics</p>
+      </li>
+    </ul>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <nav class="footer-nav">
+        <ul>
+          <li><a href="https://techpolicy.press">Home</a></li>
+          <li><a href="https://www.techpolicy.press/about-us/">About</a></li>
+          <li><a href="/submit">Submit a Link</a></li>
+          <li><a href="https://www.techpolicy.press/newsletter/">Newsletter</a></li>
+          <li><a href="/rss">RSS</a></li>
+        </ul>
+      </nav>
+      <div class="footer-copyright">
+        <p>&copy; 2026 Tech Policy Press &mdash; Aggregated for educational and research purposes. | <a href="https://www.techpolicy.press/privacy/">Privacy Policy</a></p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -261,4 +261,110 @@ router.get('/me', (req, res) => {
   }
 });
 
+// Helper function to generate RSS XML
+function generateRSS(title, description, link, items) {
+  const escapeXml = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  };
+
+  const itemsXml = items.map(item => {
+    const pubDate = item.dateAdded ? new Date(item.dateAdded).toUTCString() : new Date().toUTCString();
+    return `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(item.url)}</link>
+      <guid isPermaLink="true">${escapeXml(item.url)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <source url="${escapeXml(link)}">${escapeXml(item.source || 'Field Notes')}</source>
+    </item>`;
+  }).join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(title)}</title>
+    <description>${escapeXml(description)}</description>
+    <link>${escapeXml(link)}</link>
+    <atom:link href="${escapeXml(link)}" rel="self" type="application/rss+xml"/>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${itemsXml}
+  </channel>
+</rss>`;
+}
+
+// RSS feed for all sections combined
+router.get('/rss', async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const limit = 50;
+
+    const [news, ideas, reports, documents, podcasts] = await Promise.all([
+      sheets.getContentItems('news', { limit }),
+      sheets.getContentItems('ideas', { limit }),
+      sheets.getContentItems('reports', { limit }),
+      sheets.getContentItems('documents', { limit }),
+      sheets.getContentItems('podcasts', { limit })
+    ]);
+
+    // Combine and sort by date
+    const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts]
+      .sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0))
+      .slice(0, 100);
+
+    const rss = generateRSS(
+      'Field Notes - Tech Policy Press',
+      'Curated tech policy news, ideas, reports, documents, and podcasts from Tech Policy Press',
+      baseUrl,
+      allItems
+    );
+
+    res.set('Content-Type', 'application/rss+xml');
+    res.send(rss);
+  } catch (error) {
+    console.error('Error generating RSS feed:', error);
+    res.status(500).send('Failed to generate RSS feed');
+  }
+});
+
+// RSS feed for a specific section
+router.get('/rss/:section', async (req, res) => {
+  try {
+    const { section } = req.params;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+    const sectionTitles = {
+      news: 'News',
+      ideas: 'Ideas',
+      reports: 'Reports',
+      documents: 'Documents',
+      podcasts: 'Podcasts'
+    };
+
+    if (!sectionTitles[section]) {
+      return res.status(400).send('Invalid section');
+    }
+
+    const items = await sheets.getContentItems(section, { limit: 100 });
+
+    const rss = generateRSS(
+      `Field Notes: ${sectionTitles[section]} - Tech Policy Press`,
+      `${sectionTitles[section]} from Field Notes by Tech Policy Press`,
+      `${baseUrl}/section/${section}`,
+      items
+    );
+
+    res.set('Content-Type', 'application/rss+xml');
+    res.send(rss);
+  } catch (error) {
+    console.error('Error generating RSS feed:', error);
+    res.status(500).send('Failed to generate RSS feed');
+  }
+});
+
 module.exports = router;
