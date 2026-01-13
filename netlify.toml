@@ -29,3 +29,8 @@
   from = "/submit"
   to = "/submit.html"
   status = 200
+
+[[redirects]]
+  from = "/rss"
+  to = "/rss.html"
+  status = 200

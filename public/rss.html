@@ -10,50 +10,75 @@
   <link rel="stylesheet" href="/css/styles.css">
   <style>
     .rss-container {
-      max-width: 800px;
+      max-width: 600px;
       margin: 2rem auto;
       padding: 0 1rem;
     }
+    .rss-container h2 {
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.625rem;
+      border-bottom: 1px solid #333333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     .rss-intro {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       color: var(--text-light);
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.5;
     }
     .rss-list {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
-    .rss-list li {
-      margin-bottom: 1rem;
-      padding: 1rem;
-      background: var(--surface);
-      border-radius: 4px;
+    .rss-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border-color);
     }
-    .rss-list a {
+    .rss-item:last-child {
+      border-bottom: none;
+    }
+    .rss-link {
       display: flex;
       align-items: center;
       gap: 0.75rem;
       text-decoration: none;
       color: var(--text);
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       font-weight: 500;
+      font-size: 1rem;
     }
-    .rss-list a:hover {
+    .rss-link:hover {
       color: var(--primary);
     }
     .rss-icon {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       color: #f26522;
       flex-shrink: 0;
     }
     .rss-description {
-      font-size: 0.875rem;
+      font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 0.85rem;
       color: var(--text-light);
-      margin-top: 0.5rem;
-      margin-left: 2.25rem;
+      margin-top: 0.35rem;
+      margin-left: 1.75rem;
     }
-    .all-feeds {
-      background: var(--primary-light) !important;
-      border: 1px solid var(--primary);
+    .rss-item.featured {
+      background: #f8f8f8;
+      margin: 0 -1rem;
+      padding: 1rem;
+      border-radius: 4px;
+      border-bottom: none;
+      margin-bottom: 0.5rem;
+    }
+    .rss-item.featured .rss-description {
+      margin-left: 1.75rem;
     }
   </style>
 </head>
@@ -77,8 +102,8 @@
     <p class="rss-intro">Subscribe to our RSS feeds to stay updated on the latest tech policy content. Use your favorite RSS reader to follow all sections or just the ones you're interested in.</p>
 
     <ul class="rss-list">
-      <li class="all-feeds">
-        <a href="/api/rss">
+      <li class="rss-item featured">
+        <a href="/api/rss" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
@@ -88,8 +113,8 @@
         </a>
         <p class="rss-description">Combined feed with the latest from all sections</p>
       </li>
-      <li>
-        <a href="/api/rss/news">
+      <li class="rss-item">
+        <a href="/api/rss/news" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
@@ -99,8 +124,8 @@
         </a>
         <p class="rss-description">Tech policy news coverage from various outlets</p>
       </li>
-      <li>
-        <a href="/api/rss/ideas">
+      <li class="rss-item">
+        <a href="/api/rss/ideas" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
@@ -110,8 +135,8 @@
         </a>
         <p class="rss-description">Opinion pieces, analysis, and commentary</p>
       </li>
-      <li>
-        <a href="/api/rss/reports">
+      <li class="rss-item">
+        <a href="/api/rss/reports" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
@@ -121,8 +146,8 @@
         </a>
         <p class="rss-description">Research reports and studies</p>
       </li>
-      <li>
-        <a href="/api/rss/documents">
+      <li class="rss-item">
+        <a href="/api/rss/documents" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>
@@ -132,8 +157,8 @@
         </a>
         <p class="rss-description">Primary documents, legislation, and official filings</p>
       </li>
-      <li>
-        <a href="/api/rss/podcasts">
+      <li class="rss-item">
+        <a href="/api/rss/podcasts" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3.75 3a.75.75 0 00-.75.75v.5c0 .414.336.75.75.75H4c6.075 0 11 4.925 11 11v.25c0 .414.336.75.75.75h.5a.75.75 0 00.75-.75V16C17 8.82 11.18 3 4 3h-.25z"/>
             <path d="M3 8.75A.75.75 0 013.75 8H4a8 8 0 018 8v.25a.75.75 0 01-.75.75h-.5a.75.75 0 01-.75-.75V16a6 6 0 00-6-6h-.25A.75.75 0 013 9.25v-.5z"/>

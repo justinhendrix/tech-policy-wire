@@ -741,6 +741,130 @@ exports.handler = async (event, context) => {
       return { statusCode: 201, headers, body: JSON.stringify(result) };
     }
 
+    // GET /api/rss - RSS feed for all sections combined
+    if (event.httpMethod === 'GET' && segments[0] === 'rss' && segments.length === 1) {
+      const escapeXml = (str) => {
+        if (!str) return '';
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      };
+
+      const generateRSS = (title, description, link, items) => {
+        const itemsXml = items.map(item => {
+          const pubDate = item.dateAdded ? new Date(item.dateAdded).toUTCString() : new Date().toUTCString();
+          return `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(item.url)}</link>
+      <guid isPermaLink="true">${escapeXml(item.url)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <source url="${escapeXml(link)}">${escapeXml(item.source || 'Field Notes')}</source>
+    </item>`;
+        }).join('\n');
+
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(title)}</title>
+    <description>${escapeXml(description)}</description>
+    <link>${escapeXml(link)}</link>
+    <atom:link href="${escapeXml(link + '/api/rss')}" rel="self" type="application/rss+xml"/>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${itemsXml}
+  </channel>
+</rss>`;
+      };
+
+      const [news, ideas, reports, documents, podcasts] = await Promise.all([
+        getContentItems('news', 50),
+        getContentItems('ideas', 50),
+        getContentItems('reports', 50),
+        getContentItems('documents', 50),
+        getContentItems('podcasts', 50)
+      ]);
+
+      const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts]
+        .sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0))
+        .slice(0, 100);
+
+      const baseUrl = `https://${event.headers.host || 'tppfieldnotes.netlify.app'}`;
+      const rss = generateRSS(
+        'Field Notes - Tech Policy Press',
+        'Curated tech policy news, ideas, reports, documents, and podcasts from Tech Policy Press',
+        baseUrl,
+        allItems
+      );
+
+      return {
+        statusCode: 200,
+        headers: { ...baseHeaders, 'Content-Type': 'application/rss+xml' },
+        body: rss
+      };
+    }
+
+    // GET /api/rss/:section - RSS feed for a specific section
+    if (event.httpMethod === 'GET' && segments[0] === 'rss' && segments.length === 2) {
+      const section = segments[1];
+      const sectionTitles = {
+        news: 'News',
+        ideas: 'Ideas',
+        reports: 'Reports',
+        documents: 'Documents',
+        podcasts: 'Podcasts'
+      };
+
+      if (!sectionTitles[section]) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid section' }) };
+      }
+
+      const escapeXml = (str) => {
+        if (!str) return '';
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      };
+
+      const items = await getContentItems(section, 100);
+      const baseUrl = `https://${event.headers.host || 'tppfieldnotes.netlify.app'}`;
+
+      const itemsXml = items.map(item => {
+        const pubDate = item.dateAdded ? new Date(item.dateAdded).toUTCString() : new Date().toUTCString();
+        return `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(item.url)}</link>
+      <guid isPermaLink="true">${escapeXml(item.url)}</guid>
+      <pubDate>${pubDate}</pubDate>
+      <source url="${escapeXml(baseUrl)}">${escapeXml(item.source || 'Field Notes')}</source>
+    </item>`;
+      }).join('\n');
+
+      const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeXml(`Field Notes: ${sectionTitles[section]} - Tech Policy Press`)}</title>
+    <description>${escapeXml(`${sectionTitles[section]} from Field Notes by Tech Policy Press`)}</description>
+    <link>${escapeXml(`${baseUrl}/section/${section}`)}</link>
+    <atom:link href="${escapeXml(`${baseUrl}/api/rss/${section}`)}" rel="self" type="application/rss+xml"/>
+    <language>en-us</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+${itemsXml}
+  </channel>
+</rss>`;
+
+      return {
+        statusCode: 200,
+        headers: { ...baseHeaders, 'Content-Type': 'application/rss+xml' },
+        body: rss
+      };
+    }
+
     // GET /api/search - Search across all sections
     if (event.httpMethod === 'GET' && segments[0] === 'search') {
       const q = event.queryStringParameters?.q || '';
