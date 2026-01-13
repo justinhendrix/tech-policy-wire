@@ -15,8 +15,10 @@
       max-width: 1200px;
       margin: 0 auto;
       padding: 2.5rem 2rem 4rem;
-      /* Align with header-text: logo (60px auto width ~100px) + padding (1.5rem) + border (1px) + gap (1.5rem) */
-      padding-left: calc(100px + 1.5rem + 1px + 1.5rem + 2rem);
+    }
+    .rss-content {
+      /* Match header-text alignment: same padding as header-content uses */
+      margin-left: calc(100px + 1.5rem + 1px + 1.5rem);
     }
     .rss-page h2 {
       font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
@@ -25,9 +27,8 @@
       margin-bottom: 0.5rem;
       padding-bottom: 0.625rem;
       border-bottom: 1px solid #333333;
-      text-transform: uppercase;
       letter-spacing: 0.5px;
-      max-width: 400px;
+      display: inline-block;
     }
     .rss-intro {
       margin-bottom: 1.5rem;
@@ -41,7 +42,7 @@
       list-style: none;
       padding: 0;
       margin: 0;
-      max-width: 400px;
+      max-width: 500px;
     }
     .rss-item {
       padding: 1rem 0;
@@ -74,7 +75,7 @@
       font-size: 0.85rem;
       color: var(--text-light);
       margin-top: 0.35rem;
-      margin-left: 1.75rem;
+      margin-left: calc(20px + 0.75rem);
     }
     .rss-item.featured {
       background: #f8f8f8;
@@ -87,8 +88,8 @@
       margin-bottom: 0.5rem;
     }
     @media (max-width: 768px) {
-      .rss-page {
-        padding-left: 2rem;
+      .rss-content {
+        margin-left: 0;
       }
     }
   </style>
@@ -109,10 +110,11 @@
   </header>
 
   <main class="rss-page">
-    <h2>RSS Feeds</h2>
-    <p class="rss-intro">Subscribe to our RSS feeds to stay updated on the latest tech policy content. Use your favorite RSS reader to follow all sections or just the ones you're interested in.</p>
+    <div class="rss-content">
+      <h2>RSS Feeds</h2>
+      <p class="rss-intro">Subscribe to our RSS feeds to stay updated on the latest tech policy content. Use your favorite RSS reader to follow all sections or just the ones you're interested in.</p>
 
-    <ul class="rss-list">
+      <ul class="rss-list">
       <li class="rss-item featured">
         <a href="/api/rss" class="rss-link">
           <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -179,7 +181,8 @@
         </a>
         <p class="rss-description">Podcast episodes covering tech policy topics</p>
       </li>
-    </ul>
+      </ul>
+    </div>
   </main>
 
   <footer>
