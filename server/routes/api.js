@@ -298,22 +298,50 @@ ${itemsXml}
 </rss>`;
 }
 
+// Helper to fetch Tech Policy Press RSS feed
+async function fetchTppFeed() {
+  try {
+    const response = await fetch('https://www.techpolicy.press/rss/feed.xml');
+    const xml = await response.text();
+    const items = [];
+    const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+    for (const itemXml of itemMatches.slice(0, 50)) {
+      const title = (itemXml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/) || [])[1] || '';
+      const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+      const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+      if (title && link) {
+        items.push({
+          title: title.replace(/<!\[CDATA\[|\]\]>/g, ''),
+          url: link,
+          source: 'Tech Policy Press',
+          dateAdded: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString()
+        });
+      }
+    }
+    return items;
+  } catch (err) {
+    console.error('Error fetching TPP feed:', err);
+    return [];
+  }
+}
+
 // RSS feed for all sections combined
 router.get('/rss', async (req, res) => {
   try {
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const limit = 50;
 
-    const [news, ideas, reports, documents, podcasts] = await Promise.all([
+    const [news, ideas, reports, documents, podcasts, tppItems] = await Promise.all([
       sheets.getContentItems('news', { limit }),
       sheets.getContentItems('ideas', { limit }),
       sheets.getContentItems('reports', { limit }),
       sheets.getContentItems('documents', { limit }),
-      sheets.getContentItems('podcasts', { limit })
+      sheets.getContentItems('podcasts', { limit }),
+      fetchTppFeed()
     ]);
 
     // Combine and sort by date
-    const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts]
+    const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts, ...tppItems]
       .sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0))
       .slice(0, 100);
 

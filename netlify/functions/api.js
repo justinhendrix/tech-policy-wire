@@ -779,15 +779,44 @@ ${itemsXml}
 </rss>`;
       };
 
-      const [news, ideas, reports, documents, podcasts] = await Promise.all([
+      // Fetch Tech Policy Press RSS feed
+      const fetchTppFeed = async () => {
+        try {
+          const response = await fetch('https://www.techpolicy.press/rss/feed.xml');
+          const xml = await response.text();
+          // Simple XML parsing for RSS items
+          const items = [];
+          const itemMatches = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+          for (const itemXml of itemMatches.slice(0, 50)) {
+            const title = (itemXml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/) || [])[1] || '';
+            const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+            const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+            if (title && link) {
+              items.push({
+                title: title.replace(/<!\[CDATA\[|\]\]>/g, ''),
+                url: link,
+                source: 'Tech Policy Press',
+                dateAdded: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString()
+              });
+            }
+          }
+          return items;
+        } catch (err) {
+          console.error('Error fetching TPP feed:', err);
+          return [];
+        }
+      };
+
+      const [news, ideas, reports, documents, podcasts, tppItems] = await Promise.all([
         getContentItems('news', 50),
         getContentItems('ideas', 50),
         getContentItems('reports', 50),
         getContentItems('documents', 50),
-        getContentItems('podcasts', 50)
+        getContentItems('podcasts', 50),
+        fetchTppFeed()
       ]);
 
-      const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts]
+      const allItems = [...news, ...ideas, ...reports, ...documents, ...podcasts, ...tppItems]
         .sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0))
         .slice(0, 100);
 
