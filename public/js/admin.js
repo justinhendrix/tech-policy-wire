@@ -1,6 +1,12 @@
 // Tech Policy Wire - Admin JavaScript
 
 const API_BASE = '/api';
+const ITEMS_PER_PAGE = 25;
+
+// Track pagination state per section
+let currentSection = 'news';
+let displayedCount = 0;
+let allItems = [];
 
 // Load user info
 async function loadUserInfo() {
@@ -88,14 +94,111 @@ function populateFormForEdit(item, section) {
   document.querySelector('.admin-form').scrollIntoView({ behavior: 'smooth' });
 }
 
+// Render a single item row
+function renderItemRow(item, section) {
+  const tr = document.createElement('tr');
+
+  // Title cell with link
+  const titleTd = document.createElement('td');
+  const titleLink = document.createElement('a');
+
+  titleLink.href = item.url || '#';
+  titleLink.textContent = item.title || 'Untitled';
+
+  titleLink.target = '_blank';
+  titleTd.appendChild(titleLink);
+  tr.appendChild(titleTd);
+
+  // Source cell
+  const sourceTd = document.createElement('td');
+  sourceTd.textContent = item.source || '-';
+  tr.appendChild(sourceTd);
+
+  // Date cell
+  const dateTd = document.createElement('td');
+  if (item.dateAdded) {
+    const date = new Date(item.dateAdded);
+    dateTd.textContent = date.toLocaleDateString();
+  } else {
+    dateTd.textContent = '-';
+  }
+  tr.appendChild(dateTd);
+
+  // Actions cell
+  const actionsTd = document.createElement('td');
+  actionsTd.className = 'admin-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'btn btn-outline';
+  editBtn.textContent = 'Edit';
+  editBtn.onclick = () => populateFormForEdit(item, section);
+  actionsTd.appendChild(editBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'btn btn-danger';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.onclick = () => deleteItem(section, item.id);
+  actionsTd.appendChild(deleteBtn);
+
+  tr.appendChild(actionsTd);
+  return tr;
+}
+
+// Render the "Show More" button row
+function renderShowMoreRow(section) {
+  const tr = document.createElement('tr');
+  tr.id = 'show-more-row';
+  const td = document.createElement('td');
+  td.colSpan = 4;
+  td.style.textAlign = 'center';
+  td.style.padding = '1rem';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-outline';
+  btn.textContent = `Show More (${allItems.length - displayedCount} remaining)`;
+  btn.onclick = () => showMoreItems(section);
+  td.appendChild(btn);
+  tr.appendChild(td);
+  return tr;
+}
+
+// Show more items
+function showMoreItems(section) {
+  const tbody = document.getElementById('items-table');
+
+  // Remove the "Show More" row
+  const showMoreRow = document.getElementById('show-more-row');
+  if (showMoreRow) {
+    showMoreRow.remove();
+  }
+
+  // Add the next batch of items
+  const nextBatch = allItems.slice(displayedCount, displayedCount + ITEMS_PER_PAGE);
+  nextBatch.forEach(item => {
+    tbody.appendChild(renderItemRow(item, section));
+  });
+  displayedCount += nextBatch.length;
+
+  // Add "Show More" if there are more items
+  if (displayedCount < allItems.length) {
+    tbody.appendChild(renderShowMoreRow(section));
+  }
+}
+
 // Load items for a section
 async function loadItems(section) {
   const tbody = document.getElementById('items-table');
   tbody.innerHTML = '<tr><td colspan="4" class="loading">Loading...</td></tr>';
 
+  // Reset pagination state
+  currentSection = section;
+  displayedCount = 0;
+  allItems = [];
+
   try {
     // Add cache-busting timestamp for admin to always get fresh data
-    const response = await fetch(`${API_BASE}/content/${section}?limit=50&_t=${Date.now()}`);
+    // Fetch all items (no limit) so we can paginate client-side
+    const response = await fetch(`${API_BASE}/content/${section}?_t=${Date.now()}`);
     const items = await response.json();
 
     tbody.innerHTML = '';
@@ -105,54 +208,19 @@ async function loadItems(section) {
       return;
     }
 
-    items.forEach(item => {
-      const tr = document.createElement('tr');
+    allItems = items;
 
-      // Title cell with link
-      const titleTd = document.createElement('td');
-      const titleLink = document.createElement('a');
-
-      titleLink.href = item.url || '#';
-      titleLink.textContent = item.title || 'Untitled';
-
-      titleLink.target = '_blank';
-      titleTd.appendChild(titleLink);
-      tr.appendChild(titleTd);
-
-      // Source cell
-      const sourceTd = document.createElement('td');
-      sourceTd.textContent = item.source || '-';
-      tr.appendChild(sourceTd);
-
-      // Date cell
-      const dateTd = document.createElement('td');
-      if (item.dateAdded) {
-        const date = new Date(item.dateAdded);
-        dateTd.textContent = date.toLocaleDateString();
-      } else {
-        dateTd.textContent = '-';
-      }
-      tr.appendChild(dateTd);
-
-      // Actions cell
-      const actionsTd = document.createElement('td');
-      actionsTd.className = 'admin-actions';
-
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn btn-outline';
-      editBtn.textContent = 'Edit';
-      editBtn.onclick = () => populateFormForEdit(item, section);
-      actionsTd.appendChild(editBtn);
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn btn-danger';
-      deleteBtn.textContent = 'Delete';
-      deleteBtn.onclick = () => deleteItem(section, item.id);
-      actionsTd.appendChild(deleteBtn);
-
-      tr.appendChild(actionsTd);
-      tbody.appendChild(tr);
+    // Render first batch
+    const firstBatch = allItems.slice(0, ITEMS_PER_PAGE);
+    firstBatch.forEach(item => {
+      tbody.appendChild(renderItemRow(item, section));
     });
+    displayedCount = firstBatch.length;
+
+    // Add "Show More" if there are more items
+    if (displayedCount < allItems.length) {
+      tbody.appendChild(renderShowMoreRow(section));
+    }
   } catch (error) {
     console.error('Error loading items:', error);
     tbody.innerHTML = '<tr><td colspan="4" class="error">Failed to load items</td></tr>';
