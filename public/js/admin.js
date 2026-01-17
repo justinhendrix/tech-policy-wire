@@ -260,10 +260,11 @@ async function addItem(e) {
       authors: document.getElementById('authors').value.trim(),
       institutions: document.getElementById('institutions').value.trim()
     };
-    // Include custom date if provided
+    // Include custom date if provided (use noon local time to avoid timezone date shift)
     const researchDateValue = document.getElementById('research-date-added').value;
     if (researchDateValue) {
-      data.dateAdded = new Date(researchDateValue).toISOString();
+      const [year, month, day] = researchDateValue.split('-').map(Number);
+      data.dateAdded = new Date(year, month - 1, day, 12, 0, 0).toISOString();
     }
 
     if (!data.title || !data.url) {
@@ -277,10 +278,11 @@ async function addItem(e) {
       url: document.getElementById('url').value.trim(),
       source: document.getElementById('source').value.trim()
     };
-    // Include custom date if provided
+    // Include custom date if provided (use noon local time to avoid timezone date shift)
     const dateValue = document.getElementById('date-added').value;
     if (dateValue) {
-      data.dateAdded = new Date(dateValue).toISOString();
+      const [year, month, day] = dateValue.split('-').map(Number);
+      data.dateAdded = new Date(year, month - 1, day, 12, 0, 0).toISOString();
     }
 
     if (!data.title || !data.url) {
