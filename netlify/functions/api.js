@@ -142,7 +142,8 @@ async function addContentItem(section, data) {
   }
 
   const id = Date.now().toString();
-  const dateAdded = new Date().toISOString();
+  // Use provided dateAdded or default to now
+  const dateAdded = data.dateAdded || new Date().toISOString();
   const row = [id, dateAdded, data.title, data.url, data.source || '', 'admin', 'active'];
 
   await sheets.spreadsheets.values.append({
@@ -179,11 +180,11 @@ async function updateContentItem(section, id, data) {
     throw new Error('Item not found');
   }
 
-  // Update the row (keep ID and dateAdded, update title, url, source)
+  // Update the row (keep ID, allow dateAdded update if provided, update title, url, source)
   const existingRow = rows[rowIndex];
   const updatedRow = [
     existingRow[0], // ID
-    existingRow[1], // dateAdded
+    data.dateAdded || existingRow[1], // dateAdded - allow update if provided
     data.title || existingRow[2],
     data.url || existingRow[3],
     data.source || existingRow[4] || '',
@@ -243,7 +244,8 @@ async function addResearcher(data) {
   const sheets = await getSheets();
 
   const id = Date.now().toString();
-  const dateAdded = new Date().toISOString();
+  // Use provided dateAdded or default to now
+  const dateAdded = data.dateAdded || new Date().toISOString();
   const row = [
     id,
     dateAdded,
@@ -286,7 +288,7 @@ async function updateResearcher(id, data) {
   const existingRow = rows[rowIndex];
   const updatedRow = [
     existingRow[0], // ID
-    existingRow[1], // dateAdded
+    data.dateAdded || existingRow[1], // dateAdded - allow update if provided
     data.title || existingRow[2],
     data.url || existingRow[3],
     data.source || existingRow[4] || '',

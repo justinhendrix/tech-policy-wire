@@ -64,6 +64,9 @@ function clearForm() {
   document.getElementById('submit-btn').textContent = 'Add Item';
   document.getElementById('cancel-edit-btn').style.display = 'none';
   document.getElementById('section').disabled = false;
+  // Clear date fields
+  document.getElementById('date-added').value = '';
+  document.getElementById('research-date-added').value = '';
   toggleFormFields('news');
 }
 
@@ -84,10 +87,20 @@ function populateFormForEdit(item, section) {
     document.getElementById('research-source').value = item.source || '';
     document.getElementById('authors').value = item.authors || '';
     document.getElementById('institutions').value = item.institutions || '';
+    // Set the date field if available (format: YYYY-MM-DD for date input)
+    if (item.dateAdded) {
+      const date = new Date(item.dateAdded);
+      document.getElementById('research-date-added').value = date.toISOString().split('T')[0];
+    }
   } else {
     document.getElementById('title').value = item.title || '';
     document.getElementById('url').value = item.url || '';
     document.getElementById('source').value = item.source || '';
+    // Set the date field if available (format: YYYY-MM-DD for date input)
+    if (item.dateAdded) {
+      const date = new Date(item.dateAdded);
+      document.getElementById('date-added').value = date.toISOString().split('T')[0];
+    }
   }
 
   // Scroll to form
@@ -247,6 +260,11 @@ async function addItem(e) {
       authors: document.getElementById('authors').value.trim(),
       institutions: document.getElementById('institutions').value.trim()
     };
+    // Include custom date if provided
+    const researchDateValue = document.getElementById('research-date-added').value;
+    if (researchDateValue) {
+      data.dateAdded = new Date(researchDateValue).toISOString();
+    }
 
     if (!data.title || !data.url) {
       status.textContent = 'Title and URL are required';
@@ -259,6 +277,11 @@ async function addItem(e) {
       url: document.getElementById('url').value.trim(),
       source: document.getElementById('source').value.trim()
     };
+    // Include custom date if provided
+    const dateValue = document.getElementById('date-added').value;
+    if (dateValue) {
+      data.dateAdded = new Date(dateValue).toISOString();
+    }
 
     if (!data.title || !data.url) {
       status.textContent = 'Title and URL are required';
